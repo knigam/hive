@@ -1,0 +1,58 @@
+syntax = "proto3";
+
+enum PieceType {
+  QUEEN = 0;
+  ANT = 1;
+  SPIDER = 2;
+  GRASSHOPPER = 3;
+  BEETLE = 4;
+  LADYBUG = 5;
+  MOSQUITO = 6;
+  PILLBUG = 7;
+}
+enum Color {
+  WHITE = 0;
+  BLACK = 1;
+}
+enum GameStatus {
+  NOT_STARTED = 0;
+  IN_PROGRESS = 1;
+  DRAW = 2;
+  WHITE_WON = 3;
+  BLACK_WON = 4;
+}
+message BoardPosition {
+  int64 x = 1;
+  int64 y = 2;
+}
+message Piece {
+  int64 id = 1;
+  Color color = 2;
+  PieceType type = 3;
+  optional BoardPosition position = 4;
+  optional int64 stack = 5;
+}
+message PlayerState {
+  string creator = 1;
+  Color color = 2;
+  optional Piece selected_piece = 3;
+  optional repeated BoardPosition valid_moves = 4;
+  repeated Piece unplayed_pieces = 5;
+  repeated Piece board_pieces = 6;
+  Color current_player_turn = 7;
+  repeated string players = 8;
+  GameStatus status = 9;
+}
+message PlayerData {
+  string player_name = 1;
+}
+message MethodResponse {
+  string msg_id = 1;
+  string error = 2;
+}
+message Response {
+  oneof type {
+    PlayerState state = 1;
+    MethodResponse res = 2;
+  }
+}

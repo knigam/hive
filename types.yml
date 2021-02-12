@@ -1,0 +1,62 @@
+types:
+  PlayerName: string
+  PieceId: number
+
+  PieceType:
+    - QUEEN
+    - ANT
+    - SPIDER
+    - GRASSHOPPER
+    - BEETLE
+    - LADYBUG
+    - MOSQUITO
+    - PILLBUG
+  Color:
+    - WHITE
+    - BLACK
+  GameStatus:
+    - NOT_STARTED
+    - IN_PROGRESS
+    - DRAW
+    - WHITE_WON
+    - BLACK_WON
+
+  BoardPosition:
+    x: number
+    y: number
+
+  Piece:
+    id: PieceId
+    color: Color
+    type: PieceType
+    position?: BoardPosition
+    stack?: number
+
+  PlayerState:
+    creator: PlayerName
+    color: Color
+    selectedPiece?: Piece
+    validMoves?: BoardPosition[]
+    unplayedPieces: Piece[]
+    boardPieces: Piece[]
+    currentPlayerTurn: Color
+    players: PlayerName[]
+    status: GameStatus
+  PlayerData:
+    playerName: PlayerName
+
+methods:
+  createGame:
+  joinGame:
+  startGame:
+    pieces: Piece[]
+    color?: Color
+  selectPiece:
+    piece: Piece
+  movePiece:
+    piece: Piece
+    position: BoardPosition
+
+userState: PlayerState
+userData: PlayerData
+initialize: createGame
