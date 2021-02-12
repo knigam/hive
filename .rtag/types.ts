@@ -36,7 +36,7 @@ export interface PlayerState {
   creator: PlayerName
   color: Color
   selectedPiece: Piece | undefined
-  validMoves: BoardPosition[] | undefined
+  validMoves: BoardPosition[]
   unplayedPieces: Piece[]
   boardPieces: Piece[]
   currentPlayerTurn: Color
