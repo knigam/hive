@@ -4,7 +4,7 @@ import {
   Color,
   GameStatus,
   Piece,
-  PlayerData,
+  UserData,
   PlayerName,
   PlayerState,
   ICreateGameRequest,
@@ -29,12 +29,12 @@ interface InternalState {
 
 export class Impl implements Methods<InternalState> {
   createGame(
-    userData: PlayerData,
+    userData: UserData,
     _request: ICreateGameRequest
   ): InternalState {
     return {
-      creator: userData.playerName,
-      players: [userData.playerName],
+      creator: userData.name,
+      players: [userData.name],
       color: {},
       unplayedPieces: [],
       board: {},
@@ -43,15 +43,15 @@ export class Impl implements Methods<InternalState> {
 
   joinGame(
     state: InternalState,
-    userData: PlayerData,
+    userData: UserData,
     _request: IJoinGameRequest
   ): string | void {
-    state.players.push(userData.playerName);
+    state.players.push(userData.name);
   }
 
   startGame(
     state: InternalState,
-    userData: PlayerData,
+    userData: UserData,
     request: IStartGameRequest
   ): string | void {
     if (state.players.length !== 2) {
@@ -68,11 +68,11 @@ export class Impl implements Methods<InternalState> {
 
   selectPiece(
     state: InternalState,
-    userData: PlayerData,
+    userData: UserData,
     request: ISelectPieceRequest
   ): string | void {
     const { color, currentPlayerTurn } = state;
-    const currentPlayerColor = color[userData.playerName];
+    const currentPlayerColor = color[userData.name];
 
     if (canSelectPiece(currentPlayerColor, currentPlayerTurn!, request.piece)) {
       state.selectedPiece = request.piece;
@@ -81,7 +81,7 @@ export class Impl implements Methods<InternalState> {
 
   movePiece(
     state: InternalState,
-    userData: PlayerData,
+    userData: UserData,
     request: IMovePieceRequest
   ): string | void {
     const { piece, position } = request;
@@ -107,7 +107,7 @@ export class Impl implements Methods<InternalState> {
       state.currentPlayerTurn === Color.WHITE ? Color.BLACK : Color.WHITE; // TODO: check if player actually has any valid moves
   }
 
-  getUserState(state: InternalState, userData: PlayerData): PlayerState {
+  getUserState(state: InternalState, userData: UserData): PlayerState {
     const {
       creator,
       color,
@@ -117,7 +117,7 @@ export class Impl implements Methods<InternalState> {
       unplayedPieces,
       board,
     } = state;
-    const currentPlayerColor = state.color[userData.playerName];
+    const currentPlayerColor = state.color[userData.name];
     const selectedPieceForPlayer =
       selectedPiece &&
       canSelectPiece(currentPlayerColor, currentPlayerTurn!, selectedPiece)
@@ -126,7 +126,7 @@ export class Impl implements Methods<InternalState> {
 
     return {
       creator,
-      color: color[userData.playerName],
+      color: color[userData.name],
       currentPlayerTurn: currentPlayerTurn || Color.WHITE,
       players,
       status: gameStatus(currentPlayerTurn, board),
