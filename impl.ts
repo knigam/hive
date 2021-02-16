@@ -133,7 +133,7 @@ export class Impl implements Methods<InternalState> {
       selectedPiece: selectedPieceForPlayer,
       validMoves: selectedPieceForPlayer
         ? getValidMoves(selectedPieceForPlayer, board)
-        : undefined,
+        : [],
       unplayedPieces,
       boardPieces: boardPiecesAsList(board),
     };

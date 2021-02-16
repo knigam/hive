@@ -36,7 +36,7 @@ message PlayerState {
   string creator = 1;
   Color color = 2;
   optional Piece selected_piece = 3;
-  optional repeated BoardPosition valid_moves = 4;
+  repeated BoardPosition valid_moves = 4;
   repeated Piece unplayed_pieces = 5;
   repeated Piece board_pieces = 6;
   Color current_player_turn = 7;
