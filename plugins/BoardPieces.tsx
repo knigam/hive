@@ -124,7 +124,7 @@ class Board extends React.Component<IBoardProps, IBoardState> {
     const { height, width, pieceSize } = this;
     const { translatePosX, translatePosY, scale } = this.state;
     const size = pieceSize * scale;
-    const { position, color, type } = piece;
+    const { id, position, color, type } = piece;
     const { x, y } = position!;
     const center_x = width / 2 + translatePosX;
     const center_y = height / 2 + translatePosY;
@@ -145,7 +145,7 @@ class Board extends React.Component<IBoardProps, IBoardState> {
     ctx.closePath();
     ctx.fillStyle = "white";
     ctx.textAlign = "center";
-    ctx.fillText(`${PieceType[type]} - ${x},${y}`, actual_x, actual_y);
+    ctx.fillText(`${id} ${PieceType[type]} (${x}, ${y})`, actual_x, actual_y);
   }
 }
 export default reactToWebComponent(Board, React, ReactDOM);
