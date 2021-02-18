@@ -35,6 +35,7 @@ types:
 
   PlayerState:
     creator: PlayerName
+    tournament: boolean
     color: Color
     selectedPiece?: Piece
     validMoves: BoardPosition[]
@@ -51,6 +52,7 @@ methods:
     whitePieces: PieceType[]
     blackPieces: PieceType[]
     creatorColor?: Color
+    tournament?: boolean
   selectPiece:
     pieceId: PieceId
   movePiece:
