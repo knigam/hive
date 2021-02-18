@@ -104,6 +104,7 @@ export class Impl implements Methods<InternalState> {
     } else if (currentPlayerColor !== currentPlayerTurn) {
       return `It is not your turn`;
     } else if (currentPlayerColor !== piece.color) {
+      // TODO: need to change this to allow selecting an opponent piece with pillbug.
       return "You can only select pieces that are your own color";
     }
   }
@@ -127,6 +128,7 @@ export class Impl implements Methods<InternalState> {
     } else if (currentPlayerColor !== currentPlayerTurn) {
       return `It is not your turn`;
     } else if (currentPlayerColor !== piece.color) {
+      // TODO: need to change this to allow moving an opponent piece with pillbug.
       return "You can only move pieces that are your own color";
     }
     if (
@@ -257,7 +259,7 @@ function getSurroundingPositions(
   return positions.flatMap((p) => {
     const { x, y } = p;
     return [
-      { x: x + 1, y: 0 },
+      { x: x + 1, y: y },
       { x: x, y: y + 1 },
       { x: x - 1, y: y },
       { x: x, y: y - 1 },
@@ -298,7 +300,7 @@ function canSelectPiece(
 ): boolean {
   return (
     currentPlayerTurn === currentPlayerColor &&
-    selectedPiece.color === currentPlayerColor
+    selectedPiece.color === currentPlayerColor // TODO: need to change this to allow selecting an opponent piece with pillbug.
   );
 }
 
@@ -306,7 +308,7 @@ function doesPlayerHaveValidMoves(state: InternalState): boolean {
   const { board, currentPlayerTurn, unplayedPieces } = state;
   return unplayedPieces
     .concat(boardPiecesAsList(board))
-    .filter((p) => p.color === currentPlayerTurn)
+    .filter((p) => p.color === currentPlayerTurn) // TODO: need to change this to allow moving an opponent piece with pillbug.
     .find((p) => getValidMoves(p, board).length > 0)
     ? true
     : false;

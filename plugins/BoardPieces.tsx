@@ -2,7 +2,14 @@
 import reactToWebComponent from "react-to-webcomponent";
 import React from "react";
 import ReactDOM from "react-dom";
-import { Color, Piece, PieceType } from "../.rtag/types";
+import {
+  BoardPosition,
+  Color,
+  Piece,
+  PieceType,
+  PlayerState,
+} from "../.rtag/types";
+import { RtagClient } from "../.rtag/client";
 
 const HEIGHT = 500;
 const WIDTH = 500;
@@ -10,6 +17,8 @@ const PIECE_SIZE = 50;
 
 export interface IBoardProps {
   val: Piece[];
+  state: PlayerState;
+  client: RtagClient;
 }
 
 export interface IBoardState {
@@ -96,12 +105,12 @@ class Board extends React.Component<IBoardProps, IBoardState> {
   };
 
   private drawBoard() {
-    const { height, width } = this;
-    const { scale } = this.state;
+    const { props, height, width } = this;
+    const { val, state } = props;
     const pieces: { [key: string]: Piece } = {};
-      this.props.val.forEach(p => {
-        pieces[`${p.position!.x}${p.position!.y}`] = p;
-      })
+    val.forEach((p) => {
+      pieces[`${p.position!.x}${p.position!.y}`] = p;
+    });
     if (this.canvas) {
       // add event listeners to handle screen drag
       this.canvas.addEventListener("mousedown", this.mouseDown);
@@ -116,36 +125,62 @@ class Board extends React.Component<IBoardProps, IBoardState> {
       if (ctx) {
         ctx.clearRect(0, 0, width, height);
         Object.values(pieces).forEach((p) => this.drawPiece(ctx, p));
+        state.validMoves.forEach((m) => this.drawValidMoves(ctx, m));
       }
     }
   }
 
   private drawPiece(ctx: CanvasRenderingContext2D, piece: Piece) {
+    const { selectedPiece } = this.props.state;
+    const { id, position, color, type } = piece;
+    const colorStr = color === Color.WHITE ? "#D2B48C" : "#243447";
+    const textStr = `${id} ${PieceType[type]} (${position!.x}, ${position!.y})`;
+    this.drawHex(ctx, position!, colorStr, textStr);
+    if (selectedPiece && piece.id === selectedPiece.id) {
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = "#FF0000";
+      ctx.stroke();
+    }
+  }
+
+  private drawValidMoves(
+    ctx: CanvasRenderingContext2D,
+    position: BoardPosition
+  ) {
+    const color = "#99ddff";
+    this.drawHex(ctx, position, color, `(${position!.x}, ${position!.y})`);
+  }
+
+  private drawHex(
+    ctx: CanvasRenderingContext2D,
+    position: BoardPosition,
+    color: string,
+    text: string
+  ) {
+    const { x, y } = position;
     const { height, width, pieceSize } = this;
     const { translatePosX, translatePosY, scale } = this.state;
     const size = pieceSize * scale;
-    const { id, position, color, type } = piece;
-    const { x, y } = position!;
     const center_x = width / 2 + translatePosX;
     const center_y = height / 2 + translatePosY;
-    const y_offset = (x & 1) === 0 ? 0 : 0.5;
     const actual_x = center_x + x * size * 1.5;
-    const actual_y = center_y + (y + y_offset) * size * Math.sqrt(3);
+    const actual_y =
+      center_y + size * ((Math.sqrt(3) / 2) * x + Math.sqrt(3) * y);
 
     ctx.beginPath();
     ctx.moveTo(actual_x + size * Math.cos(0), actual_y + size * Math.sin(0));
-    for (var side = 0; side < 7; side++) {
+    for (var side = 0; side < 6; side++) {
       ctx.lineTo(
         actual_x + size * Math.cos((side * 2 * Math.PI) / 6),
         actual_y + size * Math.sin((side * 2 * Math.PI) / 6)
       );
     }
-    ctx.fillStyle = color === Color.WHITE ? "#D2B48C" : "#243447";
+    ctx.fillStyle = color;
     ctx.fill();
     ctx.closePath();
     ctx.fillStyle = "white";
     ctx.textAlign = "center";
-    ctx.fillText(`${id} ${PieceType[type]} (${x}, ${y})`, actual_x, actual_y);
+    ctx.fillText(text, actual_x, actual_y);
   }
 }
 export default reactToWebComponent(Board, React, ReactDOM);
