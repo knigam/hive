@@ -13,7 +13,9 @@ import {
   IMovePieceRequest,
   ISelectPieceRequest,
   PieceType,
+  PieceId,
 } from "./.rtag/types";
+import { uniqBy } from "lodash-es";
 
 const NUM_SIDES_OF_PIECE = 6;
 
@@ -28,10 +30,7 @@ interface InternalState {
 }
 
 export class Impl implements Methods<InternalState> {
-  createGame(
-    userData: UserData,
-    _request: ICreateGameRequest
-  ): InternalState {
+  createGame(userData: UserData, _request: ICreateGameRequest): InternalState {
     return {
       creator: userData.name,
       players: [userData.name],
@@ -55,15 +54,31 @@ export class Impl implements Methods<InternalState> {
     request: IStartGameRequest
   ): string | void {
     if (state.players.length !== 2) {
-      throw new Error("A game must contain 2 players before starting");
+      return "A game must contain 2 players before starting";
     }
-    if (request.color !== undefined) {
-      state.color[state.players[0]] = request.color; // Assign whichever color was picked to creator
-      state.color[state.players[1]] =
-        request.color === Color.WHITE ? Color.BLACK : Color.WHITE; // Assign the other color to the other player
-    }
+    state.color[state.players[0]] =
+      request.creatorColor || (Math.random() < 0.5 ? Color.WHITE : Color.BLACK); // Assign whichever color was picked to creator or random if nothing was picked
+    state.color[state.players[1]] =
+      state.color[state.players[0]] === Color.WHITE ? Color.BLACK : Color.WHITE; // Assign the other color to the other player
     state.currentPlayerTurn = Color.WHITE; // White always goes first
-    state.unplayedPieces = request.pieces;
+
+    const whitePieces = request.whitePieces.map(
+      (type, idx) =>
+        ({
+          id: idx,
+          color: Color.WHITE,
+          type,
+        } as Piece)
+    );
+    const blackPieces = request.blackPieces.map(
+      (type, idx) =>
+        ({
+          id: whitePieces.length + idx,
+          color: Color.BLACK,
+          type,
+        } as Piece)
+    );
+    state.unplayedPieces = whitePieces.concat(blackPieces);
   }
 
   selectPiece(
@@ -73,9 +88,14 @@ export class Impl implements Methods<InternalState> {
   ): string | void {
     const { color, currentPlayerTurn } = state;
     const currentPlayerColor = color[userData.name];
+    const piece = getPieceById(request.pieceId, state);
 
-    if (canSelectPiece(currentPlayerColor, currentPlayerTurn!, request.piece)) {
-      state.selectedPiece = request.piece;
+    if (canSelectPiece(currentPlayerColor, currentPlayerTurn!, piece)) {
+      state.selectedPiece = piece;
+    } else if (currentPlayerColor !== currentPlayerTurn) {
+      return `It is not your turn`;
+    } else if (currentPlayerColor !== piece.color) {
+      return "You can only select pieces that are your own color";
     }
   }
 
@@ -84,7 +104,26 @@ export class Impl implements Methods<InternalState> {
     userData: UserData,
     request: IMovePieceRequest
   ): string | void {
-    const { piece, position } = request;
+    const { pieceId, position } = request;
+    const { board, color, currentPlayerTurn } = state;
+    const currentPlayerColor = color[userData.name];
+    const piece = getPieceById(pieceId, state);
+
+    if (canSelectPiece(currentPlayerColor, currentPlayerTurn!, piece)) {
+      state.selectedPiece = piece;
+    } else if (currentPlayerColor !== currentPlayerTurn) {
+      return `It is not your turn`;
+    } else if (currentPlayerColor !== piece.color) {
+      return "You can only move pieces that are your own color";
+    }
+    if (
+      !getValidMoves(piece, board).find(
+        (p) => p.x === position.x && p.y === position.y
+      )
+    ) {
+      return "This is not a valid move";
+    }
+
     if (piece.position === undefined) {
       // If this is a new piece, remove it from unplayed list
       state.unplayedPieces = state.unplayedPieces.filter(
@@ -99,7 +138,11 @@ export class Impl implements Methods<InternalState> {
     if (!state.board[getBoardPosKey(position)]) {
       state.board[getBoardPosKey(position)] = []; // If new stack doesn't exist, create empty list
     }
-    state.board[getBoardPosKey(position)].push(piece); // Add piece to new stack
+
+    // Update the piece and add it to the correct stack
+    piece.position = position;
+    piece.stack = state.board[getBoardPosKey(position)].length; // Stack should represent the piece's index in the list, so we can use the size of the list before adding the piece
+    state.board[getBoardPosKey(position)].push(piece);
 
     // Make sure to reset selected piece and cycle current player
     state.selectedPiece = undefined;
@@ -165,6 +208,11 @@ function gameStatus(
   } else {
     return GameStatus.IN_PROGRESS;
   }
+}
+
+function getPieceById(id: PieceId, state: InternalState): Piece {
+  return (state.unplayedPieces.find((p) => p.id === id) ||
+    boardPiecesAsList(state.board).find((p) => p.id === id))!;
 }
 
 function getBoardPosKey(position: BoardPosition): string {
@@ -251,7 +299,10 @@ function getValidMoves(
     return [{ x: 0, y: 0 }];
   }
 
-  return getSurroundingPositions(ref, board).filter(
-    (p) => getTopPieceAtPos(p, board) === undefined
+  return uniqBy(
+    getSurroundingPositions(ref, board).filter(
+      (p) => getTopPieceAtPos(p, board) === undefined
+    ),
+    (p) => getBoardPosKey(p)
   );
 }

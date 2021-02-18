@@ -1,6 +1,7 @@
 types:
   PlayerName: string
   PieceId: number
+  BoardPieces: Piece[]
 
   PieceType:
     - QUEEN
@@ -38,7 +39,7 @@ types:
     selectedPiece?: Piece
     validMoves: BoardPosition[]
     unplayedPieces: Piece[]
-    boardPieces: Piece[]
+    boardPieces: BoardPieces
     currentPlayerTurn: Color
     players: PlayerName[]
     status: GameStatus
@@ -47,12 +48,13 @@ methods:
   createGame:
   joinGame:
   startGame:
-    pieces: Piece[]
-    color?: Color
+    whitePieces: PieceType[]
+    blackPieces: PieceType[]
+    creatorColor?: Color
   selectPiece:
-    piece: Piece
+    pieceId: PieceId
   movePiece:
-    piece: Piece
+    pieceId: PieceId
     position: BoardPosition
 
 auth:
