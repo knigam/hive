@@ -100,7 +100,10 @@ export class Impl implements Methods<InternalState> {
     const piece = getPieceById(request.pieceId, state);
 
     if (canSelectPiece(currentPlayerColor, currentPlayerTurn!, piece)) {
-      state.selectedPiece = piece;
+      state.selectedPiece =
+        state.selectedPiece && state.selectedPiece.id === piece.id // If the piece that was just selected was already selected, deselect instead
+          ? undefined
+          : piece;
     } else if (currentPlayerColor !== currentPlayerTurn) {
       return `It is not your turn`;
     } else if (currentPlayerColor !== piece.color) {
