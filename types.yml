@@ -47,12 +47,12 @@ types:
 
 methods:
   createGame:
-  joinGame:
-  startGame:
+  setupGame:
     whitePieces: PieceType[]
     blackPieces: PieceType[]
     creatorColor?: Color
     tournament?: boolean
+  playGame:
   selectPiece:
     pieceId: PieceId
   movePiece:

@@ -16,6 +16,51 @@ const HEIGHT = 500;
 const WIDTH = 500;
 const PIECE_SIZE = 50;
 
+export interface ICubeHex {
+  x: number;
+  y: number;
+  z: number;
+}
+
+export interface IAxialHex {
+  q: number;
+  r: number;
+}
+
+export function cube_round(hex: ICubeHex): ICubeHex {
+  const { x, y, z } = hex;
+
+  var rx = Math.round(x);
+  var ry = Math.round(y);
+  var rz = Math.round(z);
+
+  const x_diff = Math.abs(rx - x);
+  const y_diff = Math.abs(ry - y);
+  const z_diff = Math.abs(rz - z);
+
+  if (x_diff > y_diff && x_diff > z_diff) {
+    rx = -ry - rz;
+  } else if (y_diff > z_diff) {
+    ry = -rx - rz;
+  } else {
+    rz = -rx - ry;
+  }
+  return { x: rx, y: ry, z: rz };
+}
+
+export function cube_to_axial(hex: ICubeHex): IAxialHex {
+  const { x, z } = hex;
+  return { q: x, r: z };
+}
+
+export function axial_to_cube(hex: IAxialHex): ICubeHex {
+  const { q, r } = hex;
+  const x = q;
+  const z = r;
+  const y = -x - z;
+  return { x, y, z };
+}
+
 export interface IBoardProps {
   val: Piece[];
   state: PlayerState;
@@ -106,33 +151,24 @@ class Board extends React.Component<IBoardProps, IBoardState> {
 
   private handleClick = (evt: MouseEvent) => {
     const { client, state, val } = this.props;
-    const {
-      translatePosX,
-      translatePosY,
-      scale,
-      startDragOffsetX,
-      startDragOffsetY,
-    } = this.state;
+    const { translatePosX, translatePosY, scale } = this.state;
     const { height, width, pieceSize } = this;
     const x = evt.pageX - this.canvas!.offsetLeft;
     const y = evt.pageY - this.canvas!.offsetTop;
+
     const size = pieceSize * scale;
     const center_x = width / 2 + translatePosX;
     const center_y = height / 2 + translatePosY;
+
     const q = ((2.0 / 3) * (x - center_x)) / size;
-    // const r =
-    //   ((-1.0 / 3) * (x - center_x) + (Math.sqrt(3) / 3) * (y - center_y)) /
-    //   size;
     const r = ((y - center_y) / size - (Math.sqrt(3) / 2) * q) / Math.sqrt(3);
 
-    const cube = this.axial_to_cube(q, r);
-    const rounded = this.cube_round(cube.x, cube.y, cube.z);
-    const axialRounded = this.cube_to_axial(rounded.x, rounded.y, rounded.z);
+    const cube = axial_to_cube({ q, r });
+    const roundedCube = cube_round(cube);
+    const { q: rq, r: rr } = cube_to_axial(roundedCube);
+
     const pieceClicked = val.find(
-      (p) =>
-        p.position &&
-        p.position.x === axialRounded.q &&
-        p.position.y === axialRounded.r
+      (p) => p.position && p.position.x === rq && p.position.y === rr
     );
 
     if (pieceClicked && state.selectedPiece === undefined) {
@@ -151,7 +187,7 @@ class Board extends React.Component<IBoardProps, IBoardState> {
       client.movePiece(
         {
           pieceId: state.selectedPiece.id,
-          position: { x: axialRounded.q, y: axialRounded.r },
+          position: { x: rq, y: rr },
         },
         (e) => {
           console.log(e);
@@ -159,36 +195,6 @@ class Board extends React.Component<IBoardProps, IBoardState> {
       );
     }
   };
-
-  private cube_round(x: number, y: number, z: number) {
-    var rx = Math.round(x);
-    var ry = Math.round(y);
-    var rz = Math.round(z);
-
-    var x_diff = Math.abs(rx - x);
-    var y_diff = Math.abs(ry - y);
-    var z_diff = Math.abs(rz - z);
-
-    if (x_diff > y_diff && x_diff > z_diff) {
-      rx = -ry - rz;
-    } else if (y_diff > z_diff) {
-      ry = -rx - rz;
-    } else {
-      rz = -rx - ry;
-    }
-    return { x: rx, y: ry, z: rz };
-  }
-
-  private cube_to_axial(x: number, _y: number, z: number) {
-    return { q: x, r: z };
-  }
-
-  private axial_to_cube(q: number, r: number) {
-    const x = q;
-    const z = r;
-    const y = -x - z;
-    return { x, y, z };
-  }
 
   private drawBoard() {
     const { props, height, width } = this;

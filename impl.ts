@@ -1,6 +1,5 @@
 import { Methods } from "./.rtag/methods";
 import {
-  BoardPosition,
   Color,
   GameStatus,
   Piece,
@@ -8,24 +7,29 @@ import {
   PlayerName,
   PlayerState,
   ICreateGameRequest,
-  IJoinGameRequest,
-  IStartGameRequest,
+  ISetupGameRequest,
+  IPlayGameRequest,
   IMovePieceRequest,
   ISelectPieceRequest,
   PieceType,
-  PieceId,
 } from "./.rtag/types";
-import { uniqBy } from "lodash-es";
-
-const NUM_SIDES_OF_PIECE = 6;
+import {
+  getPieceById,
+  getBoardPosKey,
+  boardPiecesAsList,
+  isPieceSurrounded,
+  IBoard,
+} from "./helpers/board";
+import { getValidMoves, doesPlayerHaveValidMoves } from "./helpers/validation";
 
 interface InternalState {
-  creator: PlayerName;
+  creatorId: string;
+  creatorName: PlayerName;
   players: PlayerName[];
   currentPlayerTurn?: Color;
   color: { [playerName: string]: Color };
   unplayedPieces: Piece[];
-  board: { [position: string]: Piece[] };
+  board: IBoard;
   selectedPiece?: Piece;
   tournament: boolean;
 }
@@ -33,8 +37,9 @@ interface InternalState {
 export class Impl implements Methods<InternalState> {
   createGame(userData: UserData, _request: ICreateGameRequest): InternalState {
     return {
-      creator: userData.name,
-      players: [userData.name],
+      creatorId: userData.id,
+      creatorName: userData.name,
+      players: [],
       color: {},
       unplayedPieces: [],
       board: {},
@@ -42,29 +47,21 @@ export class Impl implements Methods<InternalState> {
     };
   }
 
-  joinGame(
+  setupGame(
     state: InternalState,
     userData: UserData,
-    _request: IJoinGameRequest
-  ): string | void {
-    state.players.push(userData.name);
-  }
-
-  startGame(
-    state: InternalState,
-    userData: UserData,
-    request: IStartGameRequest
+    request: ISetupGameRequest
   ): string | void {
     if (gameStatus(state) !== GameStatus.NOT_STARTED) {
       return "Game has already been started";
-    } else if (state.players.length !== 2) {
-      return "A game must contain 2 players before starting";
+    } else if (state.creatorId !== userData.id) {
+      return "Only creator can set up the game";
     }
+    state.players.push(userData.name);
     state.color[state.players[0]] =
       request.creatorColor || (Math.random() < 0.5 ? Color.WHITE : Color.BLACK); // Assign whichever color was picked to creator or random if nothing was picked
     state.color[state.players[1]] =
       state.color[state.players[0]] === Color.WHITE ? Color.BLACK : Color.WHITE; // Assign the other color to the other player
-    state.currentPlayerTurn = Color.WHITE; // White always goes first
     state.tournament = request.tournament || false;
 
     const whitePieces = request.whitePieces.map(
@@ -86,6 +83,27 @@ export class Impl implements Methods<InternalState> {
     state.unplayedPieces = whitePieces.concat(blackPieces);
   }
 
+  playGame(
+    state: InternalState,
+    userData: UserData,
+    _request: IPlayGameRequest
+  ): string | void {
+    const { creatorName: creator, players } = state;
+    if (gameStatus(state) !== GameStatus.NOT_STARTED) {
+      return "Game has already been started";
+    } else if (state.creatorId === userData.id) {
+      return "Waiting for another player to start playing the game";
+    } else if (players.length === 0) {
+      return `${creator} must set up the game before it can be started`;
+    }
+
+    const numConflicts = players.filter((p) => p === userData.name).length;
+    state.players.push(
+      `${userData.name}${numConflicts > 0 ? `#${numConflicts + 1}` : ""}`
+    );
+    state.currentPlayerTurn = Color.WHITE; // White always goes first
+  }
+
   selectPiece(
     state: InternalState,
     userData: UserData,
@@ -95,9 +113,9 @@ export class Impl implements Methods<InternalState> {
       return "Game is not in progress";
     }
 
-    const { color, currentPlayerTurn } = state;
+    const { color, currentPlayerTurn, unplayedPieces, board } = state;
     const currentPlayerColor = color[userData.name];
-    const piece = getPieceById(request.pieceId, state);
+    const piece = getPieceById(request.pieceId, unplayedPieces, board);
 
     if (canSelectPiece(currentPlayerColor, currentPlayerTurn!, piece)) {
       state.selectedPiece =
@@ -122,9 +140,9 @@ export class Impl implements Methods<InternalState> {
     }
 
     const { pieceId, position } = request;
-    const { board, color, currentPlayerTurn } = state;
+    const { board, color, currentPlayerTurn, unplayedPieces } = state;
     const currentPlayerColor = color[userData.name];
-    const piece = getPieceById(pieceId, state);
+    const piece = getPieceById(pieceId, unplayedPieces, board);
 
     if (canSelectPiece(currentPlayerColor, currentPlayerTurn!, piece)) {
       state.selectedPiece = piece;
@@ -166,7 +184,9 @@ export class Impl implements Methods<InternalState> {
     state.selectedPiece = undefined;
     state.currentPlayerTurn =
       state.currentPlayerTurn === Color.WHITE ? Color.BLACK : Color.WHITE;
-    if (!doesPlayerHaveValidMoves(state)) {
+    if (
+      !doesPlayerHaveValidMoves(board, state.currentPlayerTurn, unplayedPieces)
+    ) {
       state.currentPlayerTurn =
         state.currentPlayerTurn === Color.WHITE ? Color.BLACK : Color.WHITE;
     }
@@ -174,7 +194,7 @@ export class Impl implements Methods<InternalState> {
 
   getUserState(state: InternalState, userData: UserData): PlayerState {
     const {
-      creator,
+      creatorName: creator,
       tournament,
       color,
       currentPlayerTurn,
@@ -222,7 +242,10 @@ function gameStatus(state: InternalState) {
   const whiteLost = whiteQueen && isPieceSurrounded(whiteQueen, board);
   const blackLost = blackQueen && isPieceSurrounded(blackQueen, board);
 
-  if ((whiteLost && blackLost) || !doesPlayerHaveValidMoves(state)) {
+  if (
+    (whiteLost && blackLost) ||
+    !doesPlayerHaveValidMoves(board, currentPlayerTurn, unplayedPieces)
+  ) {
     return GameStatus.DRAW;
   } else if (whiteLost) {
     return GameStatus.BLACK_WON;
@@ -233,69 +256,6 @@ function gameStatus(state: InternalState) {
   }
 }
 
-function getPieceById(id: PieceId, state: InternalState): Piece {
-  return (state.unplayedPieces.find((p) => p.id === id) ||
-    boardPiecesAsList(state.board).find((p) => p.id === id))!;
-}
-
-function getBoardPosKey(position: BoardPosition): string {
-  const { x, y } = position;
-  return `${x}${y}`;
-}
-
-function getTopPieceAtPos(
-  position: BoardPosition,
-  board: { [position: string]: Piece[] }
-): Piece | undefined {
-  const stack = board[getBoardPosKey(position)];
-  if (stack && stack.length > 0) {
-    return stack[stack.length - 1];
-  }
-
-  return undefined;
-}
-
-function getSurroundingPositions(
-  positions: BoardPosition[],
-  board: { [position: string]: Piece[] }
-): BoardPosition[] {
-  return positions.flatMap((p) => {
-    const { x, y } = p;
-    return [
-      { x: x + 1, y: y },
-      { x: x, y: y + 1 },
-      { x: x - 1, y: y },
-      { x: x, y: y - 1 },
-      { x: x + 1, y: y - 1 },
-      { x: x - 1, y: y + 1 },
-    ];
-  });
-}
-
-function getSurroundingPieces(
-  piece: Piece,
-  board: { [position: string]: Piece[] }
-): Piece[] {
-  if (piece.position === undefined) {
-    return [];
-  }
-
-  return getSurroundingPositions([piece.position], board)
-    .map((p) => getTopPieceAtPos(p, board))
-    .filter((p) => p !== undefined) as Piece[];
-}
-
-function boardPiecesAsList(board: { [position: string]: Piece[] }) {
-  return Object.values(board).flat();
-}
-
-function isPieceSurrounded(
-  piece: Piece,
-  board: { [position: string]: Piece[] }
-): boolean {
-  return getSurroundingPieces(piece, board).length === NUM_SIDES_OF_PIECE;
-}
-
 function canSelectPiece(
   currentPlayerColor: Color,
   currentPlayerTurn: Color,
@@ -304,58 +264,5 @@ function canSelectPiece(
   return (
     currentPlayerTurn === currentPlayerColor &&
     selectedPiece.color === currentPlayerColor // TODO: need to change this to allow selecting an opponent piece with pillbug.
-  );
-}
-
-function doesPlayerHaveValidMoves(state: InternalState): boolean {
-  const { board, currentPlayerTurn, unplayedPieces } = state;
-  return unplayedPieces
-    .concat(boardPiecesAsList(board))
-    .filter((p) => p.color === currentPlayerTurn) // TODO: need to change this to allow moving an opponent piece with pillbug.
-    .find((p) => getValidMoves(p, board).length > 0)
-    ? true
-    : false;
-}
-
-function getValidMoves(
-  piece: Piece,
-  board: { [position: string]: Piece[] }
-): BoardPosition[] {
-  /*
-  1. if no pieces have been played there is only one  valid move for all pieces except queen (tournament rules)
-  2. if the queen has not been played, pieces on the board have no valid moves
-  3. if three pieces have been played and none of them are queen, all pieces other than queen have no moves
-  4. if the piece is unplayed, it can only be placed touching like colors
-  5. if the piece is already played, check if removing the piece violates the one hive rule. If it does, it has no valid moves
-  6. a piece that has another piece on top of it has no valid moves
-  7. if a piece was just moved by your  opponent, it has no valid moves
-  8. otherwise, defer to piece specific rules
-    * ant: can move to any accesible space around the hive
-    * grasshopper: find all touching pieces, and then find the first available space in the same direction
-    * spider: can move to an accesible space around the hive exactly 3 spaces to the right or left
-    * queen: can move to an accessible space exactly 1 space to right or left
-    * beetle: can move to an accessible space exactly 1 space to right or left, or can move on top of touching piece. If it's already in a stack, it can move 1 space any direction
-    * ladybug: can move to any space touching a piece exactly two pieces away
-    * mosquito: get the types of all surrounding bugs and find valid moves for each type
-    * pillbug: can move to an accessible space exactly 1 space to right or left
-    * any piece next to friendly pillbug or mosquito next to pillbug: can move to another free space next to friendly piece
-  */
-
-  // TODO: make this logic real per peice. Enforce rules for placing new pieces. Enforce rules with putting queen down
-  const ref =
-    piece.position === undefined
-      ? boardPiecesAsList(board).map((p) => p.position!)
-      : [piece.position];
-
-  if (ref.length === 0) {
-    // If no pieces have been played, there is only one valid move
-    return [{ x: 0, y: 0 }];
-  }
-
-  return uniqBy(
-    getSurroundingPositions(ref, board).filter(
-      (p) => getTopPieceAtPos(p, board) === undefined
-    ),
-    (p) => getBoardPosKey(p)
   );
 }
