@@ -143,7 +143,13 @@ export class Impl implements Methods<InternalState> {
     }
 
     const { pieceId, position } = request;
-    const { board, color, currentPlayerTurn, unplayedPieces } = state;
+    const {
+      board,
+      color,
+      currentPlayerTurn,
+      unplayedPieces,
+      tournament,
+    } = state;
     const currentPlayerColor = color[userData.name];
     const piece = getPieceById(pieceId, unplayedPieces, board);
 
@@ -156,7 +162,7 @@ export class Impl implements Methods<InternalState> {
       return "You can only move pieces that are your own color";
     }
     if (
-      !getValidMoves(piece, board).find(
+      !getValidMoves(piece, board, currentPlayerColor, tournament).find(
         (p) => p.x === position.x && p.y === position.y
       )
     ) {
@@ -224,7 +230,12 @@ export class Impl implements Methods<InternalState> {
       status: gameStatus(state),
       selectedPiece: selectedPieceForPlayer,
       validMoves: selectedPieceForPlayer
-        ? getValidMoves(selectedPieceForPlayer, board)
+        ? getValidMoves(
+            selectedPieceForPlayer,
+            board,
+            currentPlayerColor,
+            tournament
+          )
         : [],
       unplayedPieces,
       boardPieces: boardPiecesAsList(board),

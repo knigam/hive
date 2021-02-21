@@ -1,36 +1,44 @@
-import { uniqBy } from "lodash-es";
-import { Piece, BoardPosition, Color } from "../.rtag/types";
+import { get, uniqBy } from "lodash-es";
+import { Piece, BoardPosition, Color, PieceType } from "../.rtag/types";
 import {
   boardPiecesAsList,
   getSurroundingPositions,
   getTopPieceAtPos,
   getBoardPosKey,
   IBoard,
+  getSurroundingPieces,
+  isHiveConnected,
 } from "./board";
 
 export function doesPlayerHaveValidMoves(
   board: IBoard,
-  currentPlayerTurn: Color,
+  currentPlayerColor: Color,
   unplayedPieces: Piece[]
 ): boolean {
   return unplayedPieces
     .concat(boardPiecesAsList(board))
-    .filter((p) => p.color === currentPlayerTurn) // TODO: need to change this to allow moving an opponent piece with pillbug.
-    .find((p) => getValidMoves(p, board).length > 0)
+    .filter((p) => p.color === currentPlayerColor) // TODO: need to change this to allow moving an opponent piece with pillbug.
+    .find((p) => getValidMoves(p, board, currentPlayerColor, false).length > 0) // tournament rules don't matter here since they only apply to first move, when there are always other valid moves
     ? true
     : false;
 }
 
-export function getValidMoves(piece: Piece, board: IBoard): BoardPosition[] {
+export function getValidMoves(
+  piece: Piece,
+  board: IBoard,
+  currentPlayerColor: Color,
+  tournament: boolean
+): BoardPosition[] {
   /*
     1. if no pieces have been played there is only one  valid move for all pieces except queen (tournament rules)
-    2. if the queen has not been played, pieces on the board have no valid moves
-    3. if three pieces have been played and none of them are queen, all pieces other than queen have no moves
-    4. if the piece is unplayed, it can only be placed touching like colors
-    5. if the piece is already played, check if removing the piece violates the one hive rule. If it does, it has no valid moves
-    6. a piece that has another piece on top of it has no valid moves
-    7. if a piece was just moved by your  opponent, it has no valid moves
-    8. otherwise, defer to piece specific rules
+    2. if a single piece has been played so far, play at any surrounding space (except queen if playing tournament rules)
+    3. if the queen has not been played, pieces on the board have no valid moves
+    4. if three pieces have been played and none of them are queen, all pieces other than queen have no moves
+    5. a piece that has another piece on top of it has no valid moves
+    6. if a piece was just moved by your  opponent, it has no valid moves
+    7. if the piece is already played, check if removing the piece violates the one hive rule. If it does, it has no valid moves
+    8. if the piece is unplayed, it can only be placed touching like colors
+    9. otherwise, defer to piece specific rules
       * ant: can move to any accesible space around the hive
       * grasshopper: find all touching pieces, and then find the first available space in the same direction
       * spider: can move to an accesible space around the hive exactly 3 spaces to the right or left
@@ -43,6 +51,93 @@ export function getValidMoves(piece: Piece, board: IBoard): BoardPosition[] {
     */
 
   // TODO: make this logic real per peice. Enforce rules for placing new pieces. Enforce rules with putting queen down
+  const piecesAsList = boardPiecesAsList(board);
+  const friendlyPiecesAsList = piecesAsList.filter(
+    (p) => p.color === currentPlayerColor
+  );
+  // 1. if no pieces have been played there is only one valid move for all pieces (except queen if playing tournament rules)
+  if (piecesAsList.length === 0) {
+    console.log("first move");
+    if (tournament && piece.type === PieceType.QUEEN) {
+      return [];
+    }
+    return [{ x: 0, y: 0 }];
+  }
+
+  // 2. if a single piece has been played so far, play at any surrounding space (except queen if playing tournament rules)
+  if (piecesAsList.length === 1) {
+    console.log("second move");
+    if (tournament && piece.type === PieceType.QUEEN) {
+      return [];
+    }
+    return getSurroundingPositions(
+      piecesAsList.map((p) => p.position!),
+      board
+    );
+  }
+
+  const hasQueenBeenPlayed = friendlyPiecesAsList.find(
+    (p) => p.type === PieceType.QUEEN
+  );
+  // 3. if the queen has not been played, pieces on the board have no valid moves
+  if (!hasQueenBeenPlayed && piece.position) {
+    console.log("can't move until queen is played");
+    return [];
+  }
+
+  // 4. if three pieces have been played and none of them are queen, all pieces other than queen have no moves
+  if (
+    friendlyPiecesAsList.length === 3 &&
+    !hasQueenBeenPlayed &&
+    piece.type !== PieceType.QUEEN
+  ) {
+    console.log("must play queen");
+    return [];
+  }
+
+  // 5. a piece that has another piece on top of it has no valid moves
+  if (
+    piece.position &&
+    getTopPieceAtPos(piece.position!, board)!.id !== piece.id
+  ) {
+    console.log("piece is stacked");
+    return [];
+  }
+
+  // 6. TODO: if a piece was just moved by your  opponent, it has no valid moves
+
+  // 7. if the piece is already played, check if removing the piece violates the one hive rule. If it does, it has no valid moves
+  if (piece.position) {
+    const positionKey = getBoardPosKey(piece.position!);
+    const boardWithoutPiece = {
+      ...board,
+      [positionKey]: [...board[positionKey].filter((p) => p.id !== piece.id)],
+    };
+    console.log(boardWithoutPiece);
+    if (!isHiveConnected(boardWithoutPiece)) {
+      console.log("one hive violation");
+      return [];
+    }
+  }
+
+  // 8. if the piece is unplayed, it can only be placed in an empty position touching at least one like color and no other colors
+  if (piece.position === undefined) {
+    console.log("playing new piece");
+    return uniqBy(
+      friendlyPiecesAsList
+        .flatMap((p) => getSurroundingPositions([p.position!], board))
+        .filter(
+          (pos) =>
+            !getTopPieceAtPos(pos, board) &&
+            getSurroundingPieces(pos, board).filter(
+              (neighbor) => neighbor.color !== currentPlayerColor
+            ).length === 0
+        ),
+      getBoardPosKey
+    );
+  }
+  console.log("should see moves");
+  // TODO: remove code below this
   const ref =
     piece.position === undefined
       ? boardPiecesAsList(board).map((p) => p.position!)

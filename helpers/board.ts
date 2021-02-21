@@ -49,20 +49,41 @@ export function getSurroundingPositions(
   });
 }
 
-export function getSurroundingPieces(piece: Piece, board: IBoard): Piece[] {
-  if (piece.position === undefined) {
-    return [];
-  }
-
-  return getSurroundingPositions([piece.position], board)
+export function getSurroundingPieces(
+  position: BoardPosition,
+  board: IBoard
+): Piece[] {
+  return getSurroundingPositions([position], board)
     .map((p) => getTopPieceAtPos(p, board))
     .filter((p) => p !== undefined) as Piece[];
 }
 
-export function boardPiecesAsList(board: IBoard) {
+export function boardPiecesAsList(board: IBoard): Piece[] {
   return Object.values(board).flat();
 }
 
 export function isPieceSurrounded(piece: Piece, board: IBoard): boolean {
-  return getSurroundingPieces(piece, board).length === NUM_SIDES_OF_PIECE;
+  if (piece.position === undefined) {
+    return false;
+  }
+  return (
+    getSurroundingPieces(piece.position, board).length === NUM_SIDES_OF_PIECE
+  );
+}
+
+export function isHiveConnected(board: IBoard): boolean {
+  const allPieces = boardPiecesAsList(board);
+  const visited = new Set<number>();
+  const queue: Piece[] = [];
+  queue.push(allPieces[0]);
+
+  while (queue.length > 0) {
+    const current = queue.pop()!;
+    visited.add(current.id);
+    getSurroundingPositions([current.position!], board)
+      .flatMap((pos) => board[getBoardPosKey(pos)])
+      .forEach((p) => p && !visited.has(p.id) && queue.push(p));
+  }
+
+  return visited.size === allPieces.length;
 }
