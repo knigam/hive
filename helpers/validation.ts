@@ -10,6 +10,7 @@ import {
   isHiveConnected,
   getFreelyMovableSpaces,
   getBoardWithoutPiece,
+  getBoardPositionFromKey,
 } from "./board";
 
 export function doesPlayerHaveValidMoves(
@@ -183,17 +184,12 @@ export function validMovesForQueen(
   board: IBoard
 ): BoardPosition[] {
   validatePieceType(PieceType.QUEEN, piece.type);
-  return validNFreelyMoveableSpaces(1, true, piece, board);
+  return validNFreelyMoveableSpaces(piece, board, 1);
 }
 
 export function validMovesForAnt(piece: Piece, board: IBoard): BoardPosition[] {
   validatePieceType(PieceType.ANT, piece.type);
-  return validNFreelyMoveableSpaces(
-    Number.MAX_SAFE_INTEGER,
-    false,
-    piece,
-    board
-  );
+  return validNFreelyMoveableSpaces(piece, board);
 }
 
 export function validMovesForSpider(
@@ -201,7 +197,7 @@ export function validMovesForSpider(
   board: IBoard
 ): BoardPosition[] {
   validatePieceType(PieceType.SPIDER, piece.type);
-  return validNFreelyMoveableSpaces(3, true, piece, board);
+  return validNFreelyMoveableSpaces(piece, board, 3);
 }
 
 /*
@@ -213,23 +209,23 @@ when you hit n, take result and add it to results list and clear visited
 for ant, you can make n really high and keep going until everything in stack is visited, then return visited list
 */
 export function validNFreelyMoveableSpaces(
-  n: number,
-  exact: boolean,
   piece: Piece,
-  board: IBoard
+  board: IBoard,
+  n?: number
 ): BoardPosition[] {
-  if (!piece.position) {
+  const { position } = piece;
+  if (!position) {
     return [];
   }
   const boardWithoutPiece = getBoardWithoutPiece(piece, board);
   let results: BoardPosition[] = [];
   const visited = new Set<string>();
-  const stack: BoardPosition[][] = [[piece.position]];
+  const stack: BoardPosition[][] = [[position]];
 
   while (stack.length > 0) {
-    console.log(results);
-    console.log(visited);
-    console.log(stack);
+    // console.log(results);
+    // console.log(visited);
+    // console.log(stack);
     const current = stack[stack.length - 1];
     if (current.length === 0) {
       stack.pop();
@@ -243,37 +239,21 @@ export function validNFreelyMoveableSpaces(
       continue;
     }
     visited.add(key);
-    if (stack.length === n) {
-      results = results.concat(
-        getFreelyMovableSpaces(pos, boardWithoutPiece).filter(
-          (s) => !visited.has(getBoardPosKey(s))
-        )
-      );
+    const newSpaces = getFreelyMovableSpaces(pos, boardWithoutPiece).filter(
+      (s) => !visited.has(getBoardPosKey(s))
+    );
+    if (n === undefined && newSpaces.length === 0) {
+      results = [...visited].map(getBoardPositionFromKey);
+      break;
+    } else if (stack.length === n) {
+      results = results.concat(newSpaces);
     } else {
-      stack.push(
-        getFreelyMovableSpaces(pos, boardWithoutPiece).filter(
-          (s) => !visited.has(getBoardPosKey(s))
-        )
-      );
+      stack.push(newSpaces);
     }
   }
-  return uniqBy(results, getBoardPosKey);
-  // const visited = new Set<String>();
-  // let queue: BoardPosition[] = [position];
-  // let tmp: BoardPosition[];
-  // for (let i = 0; i < n; i++) {
-  //   tmp = [];
-  //   queue.forEach((pos) => {
-  //     visited.add(getBoardPosKey(pos));
-  //     tmp = tmp.concat(getFreelyMovableSpaces(pos, board));
-  //   });
-  //   tmp = uniqBy(tmp, (i) => getBoardPosKey(i)).filter(
-  //     (i) => !visited.has(getBoardPosKey(i))
-  //   );
-  //   if (tmp.length === 0) {
-  //     break;
-  //   }
-  //   queue = tmp;
-  // }
-  // return exact ? queue : []; //[...visited];
+
+  // distinct results before returning and filter out current location of piece since piece can't move to same position
+  return uniqBy(results, getBoardPosKey).filter(
+    (pos) => !(pos.x === position.x && pos.y === position.y)
+  );
 }

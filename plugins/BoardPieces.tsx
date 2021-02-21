@@ -6,6 +6,7 @@ import {
   BoardPosition,
   Color,
   Piece,
+  PieceId,
   PieceType,
   PlayerState,
 } from "../.rtag/types";
@@ -117,9 +118,19 @@ class Board extends React.Component<IBoardProps, IBoardState> {
     const { height, width } = this;
     return (
       <div>
+        {this.props.state.unplayedPieces.map((p) => (
+          <button
+            type="button"
+            onClick={() => this.unplayedPieceClicked(p.id)}
+          >{`${Color[p.color]} - ${PieceType[p.type]}`}</button>
+        ))}
         <canvas ref={this.setCanvasRef} height={height} width={width} />
       </div>
     );
+  }
+
+  private unplayedPieceClicked(id: PieceId) {
+    this.props.client.selectPiece({ pieceId: id }, (e) => console.log(e));
   }
 
   private mouseDown = (evt: MouseEvent) => {

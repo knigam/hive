@@ -34,7 +34,20 @@ export function getTopPieceAtPos(
 
 export function getBoardPosKey(position: BoardPosition): string {
   const { x, y } = position;
-  return `${x}${y}`;
+  return `${x},${y}`;
+}
+
+export function getBoardPositionFromKey(key: string): BoardPosition {
+  const vals = key
+    .split(",")
+    .map((i) => Number.parseInt(i))
+    .filter(Number.isInteger);
+  if (vals.length !== 2) {
+    throw new Error(
+      `The provided key ${key} could not be parsed into a BoardPosition`
+    );
+  }
+  return { x: vals[0], y: vals[1] };
 }
 
 export function getSurroundingPositions(
@@ -79,14 +92,6 @@ export function getFreelyMovableSpaces(
   return surroundingPositions.filter(
     (pos) =>
       !getTopPieceAtPos(pos, board) && // For each surrounding space that doesn't have a piece in it, find all of the surrounding spaces (neighbors)
-      // (getSurroundingPieces(pos, board).filter(
-      //   // Make sure there is a piece touching the new pos, not including original position
-      //   (p) =>
-      //     p.position &&
-      //     !(p.position.x === position.x && p.position.y === position.y)
-      // ).length > 0 ||
-      //   (board[getBoardPosKey(position)] &&
-      //     board[getBoardPosKey(position)].length > 1)) && // OR that the original position had more than one piece in the stack
       getSurroundingPieces(pos, board).length > 0 && // Make sure there is a piece touching the new pos
       getSurroundingPositions([pos])
         .filter(
