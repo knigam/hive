@@ -8,6 +8,7 @@ import {
   IBoard,
   getSurroundingPieces,
   isHiveConnected,
+  getFreelyMovableSpaces,
 } from "./board";
 
 export function doesPlayerHaveValidMoves(
@@ -70,10 +71,7 @@ export function getValidMoves(
     if (tournament && piece.type === PieceType.QUEEN) {
       return [];
     }
-    return getSurroundingPositions(
-      piecesAsList.map((p) => p.position!),
-      board
-    );
+    return getSurroundingPositions(piecesAsList.map((p) => p.position!));
   }
 
   const hasQueenBeenPlayed = friendlyPiecesAsList.find(
@@ -113,7 +111,6 @@ export function getValidMoves(
       ...board,
       [positionKey]: [...board[positionKey].filter((p) => p.id !== piece.id)],
     };
-    console.log(boardWithoutPiece);
     if (!isHiveConnected(boardWithoutPiece)) {
       console.log("one hive violation");
       return [];
@@ -125,7 +122,7 @@ export function getValidMoves(
     console.log("playing new piece");
     return uniqBy(
       friendlyPiecesAsList
-        .flatMap((p) => getSurroundingPositions([p.position!], board))
+        .flatMap((p) => getSurroundingPositions([p.position!]))
         .filter(
           (pos) =>
             !getTopPieceAtPos(pos, board) &&
@@ -137,6 +134,26 @@ export function getValidMoves(
     );
   }
   console.log("should see moves");
+
+  // 9. otherwise, defer to piece specific rules TODO: figure out how to incorporate pillbug rules
+  switch (piece.type) {
+    case PieceType.QUEEN:
+      return validMovesForQueen(piece.position, board);
+    case PieceType.ANT:
+      break;
+    case PieceType.GRASSHOPPER:
+      break;
+    case PieceType.SPIDER:
+      break;
+    case PieceType.BEETLE:
+      break;
+    case PieceType.LADYBUG:
+      break;
+    case PieceType.MOSQUITO:
+      break;
+    case PieceType.PILLBUG:
+      break;
+  }
   // TODO: remove code below this
   const ref =
     piece.position === undefined
@@ -149,9 +166,38 @@ export function getValidMoves(
   }
 
   return uniqBy(
-    getSurroundingPositions(ref, board).filter(
+    getSurroundingPositions(ref).filter(
       (p) => getTopPieceAtPos(p, board) === undefined
     ),
     (p) => getBoardPosKey(p)
   );
+}
+
+export function validMovesForQueen(
+  position: BoardPosition,
+  board: IBoard
+): BoardPosition[] {
+  return validNFreelyMoveableSpaces(1, true, position, board);
+}
+
+export function validNFreelyMoveableSpaces(
+  n: number,
+  exact: boolean,
+  position: BoardPosition,
+  board: IBoard
+): BoardPosition[] {
+  const visited = new Set<BoardPosition>();
+  let queue: BoardPosition[] = [position];
+  let tmp: BoardPosition[];
+  for (let i = 0; i < n; i++) {
+    tmp = [];
+    queue.forEach((pos) => {
+      visited.add(pos);
+      tmp = tmp.concat(
+        getFreelyMovableSpaces(pos, board).filter((i) => !visited.has(i))
+      );
+    });
+    queue = [...tmp];
+  }
+  return exact ? queue : [...visited];
 }

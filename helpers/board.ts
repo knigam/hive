@@ -1,9 +1,14 @@
+import { over } from "lodash-es";
 import { PieceId, Piece, BoardPosition } from "../.rtag/types";
 
 export const NUM_SIDES_OF_PIECE = 6;
 
 export interface IBoard {
   [position: string]: Piece[];
+}
+
+export function boardPiecesAsList(board: IBoard): Piece[] {
+  return Object.values(board).flat();
 }
 
 export function getPieceById(
@@ -33,8 +38,7 @@ export function getBoardPosKey(position: BoardPosition): string {
 }
 
 export function getSurroundingPositions(
-  positions: BoardPosition[],
-  board: IBoard
+  positions: BoardPosition[]
 ): BoardPosition[] {
   return positions.flatMap((p) => {
     const { x, y } = p;
@@ -53,13 +57,9 @@ export function getSurroundingPieces(
   position: BoardPosition,
   board: IBoard
 ): Piece[] {
-  return getSurroundingPositions([position], board)
+  return getSurroundingPositions([position])
     .map((p) => getTopPieceAtPos(p, board))
     .filter((p) => p !== undefined) as Piece[];
-}
-
-export function boardPiecesAsList(board: IBoard): Piece[] {
-  return Object.values(board).flat();
 }
 
 export function isPieceSurrounded(piece: Piece, board: IBoard): boolean {
@@ -68,6 +68,22 @@ export function isPieceSurrounded(piece: Piece, board: IBoard): boolean {
   }
   return (
     getSurroundingPieces(piece.position, board).length === NUM_SIDES_OF_PIECE
+  );
+}
+
+export function getFreelyMovableSpaces(
+  position: BoardPosition,
+  board: IBoard
+): BoardPosition[] {
+  const surroundingPositions = getSurroundingPositions([position]);
+  return surroundingPositions.filter(
+    (pos) =>
+      !getTopPieceAtPos(pos, board) && // For each surrounding space that doesn't have a piece in it, find all of the surrounding spaces (neighbors)
+      getSurroundingPositions([pos])
+        .filter(
+          (n) => surroundingPositions.some((p) => p.x === n.x && p.y === n.y) // find the overlap between the neighbors of the free space and the original surrounding positions
+        )
+        .filter((overlap) => getTopPieceAtPos(overlap, board)).length < 2 // check which of these overlap spaces have pieces. There should always be two overlaps. If both have spaces, the piece cannot freely move here
   );
 }
 
@@ -80,7 +96,7 @@ export function isHiveConnected(board: IBoard): boolean {
   while (queue.length > 0) {
     const current = queue.pop()!;
     visited.add(current.id);
-    getSurroundingPositions([current.position!], board)
+    getSurroundingPositions([current.position!])
       .flatMap((pos) => board[getBoardPosKey(pos)])
       .forEach((p) => p && !visited.has(p.id) && queue.push(p));
   }
