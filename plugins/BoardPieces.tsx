@@ -11,6 +11,7 @@ import {
   PlayerState,
 } from "../.rtag/types";
 import { RtagClient } from "../.rtag/client";
+import { maxBy } from "lodash-es";
 
 const HEIGHT = 500;
 const WIDTH = 500;
@@ -199,11 +200,14 @@ class Board extends React.Component<IBoardProps, IBoardState> {
         }
       );
     } else {
-      const pieceClicked = val.find(
-        (p) =>
-          p.position &&
-          p.position.x === clickedPosition.x &&
-          p.position.y === clickedPosition.y
+      const pieceClicked = maxBy(
+        val.filter(
+          (p) =>
+            p.position &&
+            p.position.x === clickedPosition.x &&
+            p.position.y === clickedPosition.y
+        ),
+        (p) => p.stack
       );
       if (pieceClicked) {
         // If the selected space is a piece on the board: select that piece
