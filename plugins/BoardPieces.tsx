@@ -10,7 +10,6 @@ import {
   PlayerState,
 } from "../.rtag/types";
 import { RtagClient } from "../.rtag/client";
-import { stat } from "fs";
 
 const HEIGHT = 500;
 const WIDTH = 500;
@@ -27,7 +26,7 @@ export interface IAxialHex {
   r: number;
 }
 
-export function cube_round(hex: ICubeHex): ICubeHex {
+export function cubeRound(hex: ICubeHex): ICubeHex {
   const { x, y, z } = hex;
 
   var rx = Math.round(x);
@@ -48,17 +47,22 @@ export function cube_round(hex: ICubeHex): ICubeHex {
   return { x: rx, y: ry, z: rz };
 }
 
-export function cube_to_axial(hex: ICubeHex): IAxialHex {
+export function cubeToAxial(hex: ICubeHex): IAxialHex {
   const { x, z } = hex;
   return { q: x, r: z };
 }
 
-export function axial_to_cube(hex: IAxialHex): ICubeHex {
+export function axialToCube(hex: IAxialHex): ICubeHex {
   const { q, r } = hex;
   const x = q;
   const z = r;
   const y = -x - z;
   return { x, y, z };
+}
+
+export function axialToBoardPosition(hex: IAxialHex): BoardPosition {
+  // Axial q referrs to BoardPosition.x and r reffers to BoardPosition.y
+  return { x: hex.q, y: hex.r };
 }
 
 export interface IBoardProps {
@@ -163,36 +167,44 @@ class Board extends React.Component<IBoardProps, IBoardState> {
     const q = ((2.0 / 3) * (x - center_x)) / size;
     const r = ((y - center_y) / size - (Math.sqrt(3) / 2) * q) / Math.sqrt(3);
 
-    const cube = axial_to_cube({ q, r });
-    const roundedCube = cube_round(cube);
-    const { q: rq, r: rr } = cube_to_axial(roundedCube);
-
-    const pieceClicked = val.find(
-      (p) => p.position && p.position.x === rq && p.position.y === rr
+    const clickedPosition = axialToBoardPosition(
+      cubeToAxial(cubeRound(axialToCube({ q, r })))
     );
 
-    if (pieceClicked && state.selectedPiece === undefined) {
-      client.selectPiece({ pieceId: pieceClicked.id }, (e) => {
-        console.log(e);
-      });
-    } else if (
-      pieceClicked &&
+    if (
+      // If a piece is already selected, and the space that was selected is a valid move: move the piece
       state.selectedPiece &&
-      pieceClicked.id === state.selectedPiece.id
+      state.validMoves.find(
+        (m) => m.x === clickedPosition.x && m.y === clickedPosition.y
+      )
     ) {
-      client.selectPiece({ pieceId: pieceClicked.id }, (e) => {
-        console.log(e);
-      });
-    } else if (state.selectedPiece) {
       client.movePiece(
         {
           pieceId: state.selectedPiece.id,
-          position: { x: rq, y: rr },
+          position: clickedPosition,
         },
         (e) => {
           console.log(e);
         }
       );
+    } else {
+      const pieceClicked = val.find(
+        (p) =>
+          p.position &&
+          p.position.x === clickedPosition.x &&
+          p.position.y === clickedPosition.y
+      );
+      if (pieceClicked) {
+        // If the selected space is a piece on the board: select that piece
+        client.selectPiece({ pieceId: pieceClicked.id }, (e) => {
+          console.log(e);
+        });
+      } else {
+        // Otherwise: select "undefined" to unselect any currently selected piece
+        client.selectPiece({ pieceId: undefined }, (e) => {
+          console.log(e);
+        });
+      }
     }
   };
 

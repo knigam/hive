@@ -25,6 +25,7 @@ import { getValidMoves, doesPlayerHaveValidMoves } from "./helpers/validation";
 interface InternalState {
   creatorId: string;
   creatorName: PlayerName;
+  creatorColor?: Color;
   players: PlayerName[];
   currentPlayerTurn?: Color;
   color: { [playerName: string]: Color };
@@ -57,11 +58,8 @@ export class Impl implements Methods<InternalState> {
     } else if (state.creatorId !== userData.id) {
       return "Only creator can set up the game";
     }
-    state.players.push(userData.name);
-    state.color[state.players[0]] =
-      request.creatorColor || (Math.random() < 0.5 ? Color.WHITE : Color.BLACK); // Assign whichever color was picked to creator or random if nothing was picked
-    state.color[state.players[1]] =
-      state.color[state.players[0]] === Color.WHITE ? Color.BLACK : Color.WHITE; // Assign the other color to the other player
+    state.players = [userData.name];
+    state.creatorColor = request.creatorColor;
     state.tournament = request.tournament || false;
 
     const whitePieces = request.whitePieces.map(
@@ -88,19 +86,24 @@ export class Impl implements Methods<InternalState> {
     userData: UserData,
     _request: IPlayGameRequest
   ): string | void {
-    const { creatorName: creator, players } = state;
+    const { creatorName, creatorColor, players } = state;
     if (gameStatus(state) !== GameStatus.NOT_STARTED) {
       return "Game has already been started";
     } else if (state.creatorId === userData.id) {
       return "Waiting for another player to start playing the game";
     } else if (players.length === 0) {
-      return `${creator} must set up the game before it can be started`;
+      return `${creatorName} must set up the game before it can be started`;
     }
 
     const numConflicts = players.filter((p) => p === userData.name).length;
     state.players.push(
       `${userData.name}${numConflicts > 0 ? `#${numConflicts + 1}` : ""}`
     );
+
+    state.color[state.players[0]] =
+      creatorColor || (Math.random() < 0.5 ? Color.WHITE : Color.BLACK); // Assign whichever color was picked to creator or random if nothing was picked
+    state.color[state.players[1]] =
+      state.color[state.players[0]] === Color.WHITE ? Color.BLACK : Color.WHITE; // Assign the unused color to the new player
     state.currentPlayerTurn = Color.WHITE; // White always goes first
   }
 
@@ -115,16 +118,16 @@ export class Impl implements Methods<InternalState> {
 
     const { color, currentPlayerTurn, unplayedPieces, board } = state;
     const currentPlayerColor = color[userData.name];
-    const piece = getPieceById(request.pieceId, unplayedPieces, board);
+    const piece =
+      request.pieceId === undefined
+        ? undefined
+        : getPieceById(request.pieceId, unplayedPieces, board);
 
     if (canSelectPiece(currentPlayerColor, currentPlayerTurn!, piece)) {
-      state.selectedPiece =
-        state.selectedPiece && state.selectedPiece.id === piece.id // If the piece that was just selected was already selected, deselect instead
-          ? undefined
-          : piece;
+      state.selectedPiece = piece;
     } else if (currentPlayerColor !== currentPlayerTurn) {
       return `It is not your turn`;
-    } else if (currentPlayerColor !== piece.color) {
+    } else if (piece && currentPlayerColor !== piece.color) {
       // TODO: need to change this to allow selecting an opponent piece with pillbug.
       return "You can only select pieces that are your own color";
     }
@@ -195,6 +198,7 @@ export class Impl implements Methods<InternalState> {
   getUserState(state: InternalState, userData: UserData): PlayerState {
     const {
       creatorName: creator,
+      creatorColor,
       tournament,
       color,
       currentPlayerTurn,
@@ -212,6 +216,7 @@ export class Impl implements Methods<InternalState> {
 
     return {
       creator,
+      creatorColor,
       tournament,
       color: color[userData.name],
       currentPlayerTurn: currentPlayerTurn || Color.WHITE,
@@ -259,10 +264,10 @@ function gameStatus(state: InternalState) {
 function canSelectPiece(
   currentPlayerColor: Color,
   currentPlayerTurn: Color,
-  selectedPiece: Piece
+  selectedPiece?: Piece
 ): boolean {
   return (
     currentPlayerTurn === currentPlayerColor &&
-    selectedPiece.color === currentPlayerColor // TODO: need to change this to allow selecting an opponent piece with pillbug.
+    (selectedPiece === undefined || selectedPiece.color === currentPlayerColor) // TODO: need to change this to allow selecting an opponent piece with pillbug.
   );
 }
