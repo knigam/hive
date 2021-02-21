@@ -60,7 +60,6 @@ export function getValidMoves(
   );
   // 1. if no pieces have been played there is only one valid move for all pieces (except queen if playing tournament rules)
   if (piecesAsList.length === 0) {
-    console.log("first move");
     if (tournament && piece.type === PieceType.QUEEN) {
       return [];
     }
@@ -69,7 +68,6 @@ export function getValidMoves(
 
   // 2. if a single piece has been played so far, play at any surrounding space (except queen if playing tournament rules)
   if (piecesAsList.length === 1) {
-    console.log("second move");
     if (tournament && piece.type === PieceType.QUEEN) {
       return [];
     }
@@ -81,7 +79,6 @@ export function getValidMoves(
   );
   // 3. if the queen has not been played, pieces on the board have no valid moves
   if (!hasQueenBeenPlayed && piece.position) {
-    console.log("can't move until queen is played");
     return [];
   }
 
@@ -91,7 +88,6 @@ export function getValidMoves(
     !hasQueenBeenPlayed &&
     piece.type !== PieceType.QUEEN
   ) {
-    console.log("must play queen");
     return [];
   }
 
@@ -100,7 +96,6 @@ export function getValidMoves(
     piece.position &&
     getTopPieceAtPos(piece.position!, board)!.id !== piece.id
   ) {
-    console.log("piece is stacked");
     return [];
   }
 
@@ -110,14 +105,12 @@ export function getValidMoves(
   if (piece.position) {
     const boardWithoutPiece = getBoardWithoutPiece(piece, board);
     if (!isHiveConnected(boardWithoutPiece)) {
-      console.log("one hive violation");
       return [];
     }
   }
 
   // 8. if the piece is unplayed, it can only be placed in an empty position touching at least one like color and no other colors
   if (piece.position === undefined) {
-    console.log("playing new piece");
     return uniqBy(
       friendlyPiecesAsList
         .flatMap((p) => getSurroundingPositions([p.position!]))
@@ -131,7 +124,6 @@ export function getValidMoves(
       getBoardPosKey
     );
   }
-  console.log("should see moves");
 
   // 9. otherwise, defer to piece specific rules TODO: figure out how to incorporate pillbug rules
   switch (piece.type) {
@@ -223,9 +215,6 @@ export function validNFreelyMoveableSpaces(
   const stack: BoardPosition[][] = [[position]];
 
   while (stack.length > 0) {
-    // console.log(results);
-    // console.log(visited);
-    // console.log(stack);
     const current = stack[stack.length - 1];
     if (current.length === 0) {
       stack.pop();
