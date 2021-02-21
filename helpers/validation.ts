@@ -132,41 +132,26 @@ export function getValidMoves(
     case PieceType.ANT:
       return validMovesForAnt(piece, board);
     case PieceType.GRASSHOPPER:
-      break;
+      return validMovesForGrasshopper(piece, board);
     case PieceType.SPIDER:
       return validMovesForSpider(piece, board);
     case PieceType.BEETLE:
-      break;
+      return validMovesForBeetle(piece, board);
     case PieceType.LADYBUG:
-      break;
+      return []; // TODO
     case PieceType.MOSQUITO:
-      break;
+      return []; // TODO
     case PieceType.PILLBUG:
-      break;
+      return []; // TODO
   }
-  // TODO: remove code below this
-  const ref =
-    piece.position === undefined
-      ? boardPiecesAsList(board).map((p) => p.position!)
-      : [piece.position];
-
-  if (ref.length === 0) {
-    // If no pieces have been played, there is only one valid move
-    return [{ x: 0, y: 0 }];
-  }
-
-  return uniqBy(
-    getSurroundingPositions(ref).filter(
-      (p) => getTopPieceAtPos(p, board) === undefined
-    ),
-    (p) => getBoardPosKey(p)
-  );
 }
 
-export function validatePieceType(expected: PieceType, found: PieceType) {
-  if (expected !== found) {
+export function validatePieceType(expected: PieceType[], found: PieceType) {
+  if (!expected.some((i) => i === found)) {
     throw new Error(
-      `Expected piece of type ${PieceType[expected]} but found ${PieceType[found]}`
+      `Expected piece of type [${expected
+        .map((i) => PieceType[i])
+        .join(", ")}] but found ${PieceType[found]}`
     );
   }
 }
@@ -175,12 +160,12 @@ export function validMovesForQueen(
   piece: Piece,
   board: IBoard
 ): BoardPosition[] {
-  validatePieceType(PieceType.QUEEN, piece.type);
+  validatePieceType([PieceType.QUEEN, PieceType.MOSQUITO], piece.type);
   return validNFreelyMoveableSpaces(piece, board, 1);
 }
 
 export function validMovesForAnt(piece: Piece, board: IBoard): BoardPosition[] {
-  validatePieceType(PieceType.ANT, piece.type);
+  validatePieceType([PieceType.ANT, PieceType.MOSQUITO], piece.type);
   return validNFreelyMoveableSpaces(piece, board);
 }
 
@@ -188,8 +173,54 @@ export function validMovesForSpider(
   piece: Piece,
   board: IBoard
 ): BoardPosition[] {
-  validatePieceType(PieceType.SPIDER, piece.type);
+  validatePieceType([PieceType.SPIDER, PieceType.MOSQUITO], piece.type);
   return validNFreelyMoveableSpaces(piece, board, 3);
+}
+
+export function validMovesForBeetle(
+  piece: Piece,
+  board: IBoard
+): BoardPosition[] {
+  validatePieceType([PieceType.BEETLE, PieceType.MOSQUITO], piece.type);
+  if (!piece.position) {
+    return [];
+  }
+
+  // if beetle is already on a stack, it can safely move in any direction
+  if (piece.stack && piece.stack > 0) {
+    return getSurroundingPositions([piece.position]);
+  }
+
+  // if it's on the ground, it can move to any free space, or to any touching piece's space
+  return validNFreelyMoveableSpaces(piece, board, 1).concat(
+    getSurroundingPieces(piece.position, board).map((i) => i.position!)
+  );
+}
+
+export function validMovesForGrasshopper(
+  piece: Piece,
+  board: IBoard
+): BoardPosition[] {
+  validatePieceType([PieceType.GRASSHOPPER, PieceType.MOSQUITO], piece.type);
+  const { position } = piece;
+  if (!position) {
+    return [];
+  }
+  const surroundingPieces = getSurroundingPieces(position, board);
+  return surroundingPieces.map((neighbor) => {
+    const direction = {
+      x: neighbor.position!.x - position.x,
+      y: neighbor.position!.y - position.y,
+    };
+    let currentPos = neighbor.position!;
+    while (getTopPieceAtPos(currentPos, board)) {
+      currentPos = {
+        x: currentPos.x + direction.x,
+        y: currentPos.y + direction.y,
+      };
+    }
+    return currentPos;
+  });
 }
 
 /*
