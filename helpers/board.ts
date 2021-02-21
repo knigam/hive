@@ -79,26 +79,46 @@ export function getFreelyMovableSpaces(
   return surroundingPositions.filter(
     (pos) =>
       !getTopPieceAtPos(pos, board) && // For each surrounding space that doesn't have a piece in it, find all of the surrounding spaces (neighbors)
+      // (getSurroundingPieces(pos, board).filter(
+      //   // Make sure there is a piece touching the new pos, not including original position
+      //   (p) =>
+      //     p.position &&
+      //     !(p.position.x === position.x && p.position.y === position.y)
+      // ).length > 0 ||
+      //   (board[getBoardPosKey(position)] &&
+      //     board[getBoardPosKey(position)].length > 1)) && // OR that the original position had more than one piece in the stack
+      getSurroundingPieces(pos, board).length > 0 && // Make sure there is a piece touching the new pos
       getSurroundingPositions([pos])
         .filter(
           (n) => surroundingPositions.some((p) => p.x === n.x && p.y === n.y) // find the overlap between the neighbors of the free space and the original surrounding positions
         )
-        .filter((overlap) => getTopPieceAtPos(overlap, board)).length < 2 // check which of these overlap spaces have pieces. There should always be two overlaps. If both have spaces, the piece cannot freely move here
+        .filter((overlap) => getTopPieceAtPos(overlap, board)).length === 1 // check which of these overlap spaces have pieces. There should always be two overlaps. If both have spaces, the piece cannot freely move here
   );
+}
+
+export function getBoardWithoutPiece(piece: Piece, board: IBoard): IBoard {
+  if (!piece.position) {
+    return board;
+  }
+  const positionKey = getBoardPosKey(piece.position);
+  return {
+    ...board,
+    [positionKey]: [...board[positionKey].filter((p) => p.id !== piece.id)],
+  };
 }
 
 export function isHiveConnected(board: IBoard): boolean {
   const allPieces = boardPiecesAsList(board);
   const visited = new Set<number>();
-  const queue: Piece[] = [];
-  queue.push(allPieces[0]);
+  const stack: Piece[] = [];
+  stack.push(allPieces[0]);
 
-  while (queue.length > 0) {
-    const current = queue.pop()!;
+  while (stack.length > 0) {
+    const current = stack.pop()!;
     visited.add(current.id);
     getSurroundingPositions([current.position!])
       .flatMap((pos) => board[getBoardPosKey(pos)])
-      .forEach((p) => p && !visited.has(p.id) && queue.push(p));
+      .forEach((p) => p && !visited.has(p.id) && stack.push(p));
   }
 
   return visited.size === allPieces.length;

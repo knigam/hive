@@ -9,6 +9,7 @@ import {
   getSurroundingPieces,
   isHiveConnected,
   getFreelyMovableSpaces,
+  getBoardWithoutPiece,
 } from "./board";
 
 export function doesPlayerHaveValidMoves(
@@ -106,11 +107,7 @@ export function getValidMoves(
 
   // 7. if the piece is already played, check if removing the piece violates the one hive rule. If it does, it has no valid moves
   if (piece.position) {
-    const positionKey = getBoardPosKey(piece.position!);
-    const boardWithoutPiece = {
-      ...board,
-      [positionKey]: [...board[positionKey].filter((p) => p.id !== piece.id)],
-    };
+    const boardWithoutPiece = getBoardWithoutPiece(piece, board);
     if (!isHiveConnected(boardWithoutPiece)) {
       console.log("one hive violation");
       return [];
@@ -138,13 +135,13 @@ export function getValidMoves(
   // 9. otherwise, defer to piece specific rules TODO: figure out how to incorporate pillbug rules
   switch (piece.type) {
     case PieceType.QUEEN:
-      return validMovesForQueen(piece.position, board);
+      return validMovesForQueen(piece, board);
     case PieceType.ANT:
-      break;
+      return validMovesForAnt(piece, board);
     case PieceType.GRASSHOPPER:
       break;
     case PieceType.SPIDER:
-      break;
+      return validMovesForSpider(piece, board);
     case PieceType.BEETLE:
       break;
     case PieceType.LADYBUG:
@@ -173,31 +170,110 @@ export function getValidMoves(
   );
 }
 
-export function validMovesForQueen(
-  position: BoardPosition,
-  board: IBoard
-): BoardPosition[] {
-  return validNFreelyMoveableSpaces(1, true, position, board);
+export function validatePieceType(expected: PieceType, found: PieceType) {
+  if (expected !== found) {
+    throw new Error(
+      `Expected piece of type ${PieceType[expected]} but found ${PieceType[found]}`
+    );
+  }
 }
 
+export function validMovesForQueen(
+  piece: Piece,
+  board: IBoard
+): BoardPosition[] {
+  validatePieceType(PieceType.QUEEN, piece.type);
+  return validNFreelyMoveableSpaces(1, true, piece, board);
+}
+
+export function validMovesForAnt(piece: Piece, board: IBoard): BoardPosition[] {
+  validatePieceType(PieceType.ANT, piece.type);
+  return validNFreelyMoveableSpaces(
+    Number.MAX_SAFE_INTEGER,
+    false,
+    piece,
+    board
+  );
+}
+
+export function validMovesForSpider(
+  piece: Piece,
+  board: IBoard
+): BoardPosition[] {
+  validatePieceType(PieceType.SPIDER, piece.type);
+  return validNFreelyMoveableSpaces(3, true, piece, board);
+}
+
+/*
+need to make this use a stack
+get all freely movable spaces that don't break one hive  rule
+add current to  visited and the rest to stack
+pop and repeat n times
+when you hit n, take result and add it to results list and clear visited
+for ant, you can make n really high and keep going until everything in stack is visited, then return visited list
+*/
 export function validNFreelyMoveableSpaces(
   n: number,
   exact: boolean,
-  position: BoardPosition,
+  piece: Piece,
   board: IBoard
 ): BoardPosition[] {
-  const visited = new Set<BoardPosition>();
-  let queue: BoardPosition[] = [position];
-  let tmp: BoardPosition[];
-  for (let i = 0; i < n; i++) {
-    tmp = [];
-    queue.forEach((pos) => {
-      visited.add(pos);
-      tmp = tmp.concat(
-        getFreelyMovableSpaces(pos, board).filter((i) => !visited.has(i))
-      );
-    });
-    queue = [...tmp];
+  if (!piece.position) {
+    return [];
   }
-  return exact ? queue : [...visited];
+  const boardWithoutPiece = getBoardWithoutPiece(piece, board);
+  let results: BoardPosition[] = [];
+  const visited = new Set<string>();
+  const stack: BoardPosition[][] = [[piece.position]];
+
+  while (stack.length > 0) {
+    console.log(results);
+    console.log(visited);
+    console.log(stack);
+    const current = stack[stack.length - 1];
+    if (current.length === 0) {
+      stack.pop();
+      continue;
+    }
+    const pos = current[current.length - 1];
+    const key = getBoardPosKey(pos);
+    if (visited.has(key)) {
+      current.pop();
+      visited.delete(key);
+      continue;
+    }
+    visited.add(key);
+    if (stack.length === n) {
+      results = results.concat(
+        getFreelyMovableSpaces(pos, boardWithoutPiece).filter(
+          (s) => !visited.has(getBoardPosKey(s))
+        )
+      );
+    } else {
+      stack.push(
+        getFreelyMovableSpaces(pos, boardWithoutPiece).filter(
+          (s) => !visited.has(getBoardPosKey(s))
+        )
+      );
+    }
+  }
+  return uniqBy(results, getBoardPosKey);
+  // const visited = new Set<String>();
+  // let queue: BoardPosition[] = [position];
+  // let tmp: BoardPosition[];
+  // for (let i = 0; i < n; i++) {
+  //   tmp = [];
+  //   queue.forEach((pos) => {
+  //     visited.add(getBoardPosKey(pos));
+  //     tmp = tmp.concat(getFreelyMovableSpaces(pos, board));
+  //   });
+  //   tmp = uniqBy(tmp, (i) => getBoardPosKey(i)).filter(
+  //     (i) => !visited.has(getBoardPosKey(i))
+  //   );
+  //   if (tmp.length === 0) {
+  //     break;
+  //   }
+  //   queue = tmp;
+  // }
+  // return exact ? queue : []; //[...visited];
 }
