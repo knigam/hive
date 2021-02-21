@@ -101,7 +101,11 @@ export class Impl implements Methods<InternalState> {
     );
 
     state.color[state.players[0]] =
-      creatorColor || (Math.random() < 0.5 ? Color.WHITE : Color.BLACK); // Assign whichever color was picked to creator or random if nothing was picked
+      creatorColor !== undefined
+        ? creatorColor
+        : Math.random() < 0.5
+        ? Color.WHITE
+        : Color.BLACK; // Assign whichever color was picked to creator or random if nothing was picked
     state.color[state.players[1]] =
       state.color[state.players[0]] === Color.WHITE ? Color.BLACK : Color.WHITE; // Assign the unused color to the new player
     state.currentPlayerTurn = Color.WHITE; // White always goes first
