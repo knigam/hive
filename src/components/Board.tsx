@@ -1,79 +1,26 @@
-// @ts-ignore
-import reactToWebComponent from "react-to-webcomponent";
 import React from "react";
-import ReactDOM from "react-dom";
-import {
-  BoardPosition,
-  Color,
-  Piece,
-  PieceId,
-  PieceType,
-  PlayerState,
-} from "../.rtag/types";
-import { RtagClient } from "../.rtag/client";
+import { BoardPosition, Color, Piece, PieceType } from "../../.rtag/types";
+import { RtagClient } from "../../.rtag/client";
 import { maxBy } from "lodash-es";
+import {
+  axialToBoardPosition,
+  cubeToAxial,
+  cubeRound,
+  axialToCube,
+} from "../helpers/hex";
 
 const HEIGHT = 500;
 const WIDTH = 500;
 const PIECE_SIZE = 50;
 
-export interface ICubeHex {
-  x: number;
-  y: number;
-  z: number;
-}
-
-export interface IAxialHex {
-  q: number;
-  r: number;
-}
-
-export function cubeRound(hex: ICubeHex): ICubeHex {
-  const { x, y, z } = hex;
-
-  var rx = Math.round(x);
-  var ry = Math.round(y);
-  var rz = Math.round(z);
-
-  const x_diff = Math.abs(rx - x);
-  const y_diff = Math.abs(ry - y);
-  const z_diff = Math.abs(rz - z);
-
-  if (x_diff > y_diff && x_diff > z_diff) {
-    rx = -ry - rz;
-  } else if (y_diff > z_diff) {
-    ry = -rx - rz;
-  } else {
-    rz = -rx - ry;
-  }
-  return { x: rx, y: ry, z: rz };
-}
-
-export function cubeToAxial(hex: ICubeHex): IAxialHex {
-  const { x, z } = hex;
-  return { q: x, r: z };
-}
-
-export function axialToCube(hex: IAxialHex): ICubeHex {
-  const { q, r } = hex;
-  const x = q;
-  const z = r;
-  const y = -x - z;
-  return { x, y, z };
-}
-
-export function axialToBoardPosition(hex: IAxialHex): BoardPosition {
-  // Axial q referrs to BoardPosition.x and r reffers to BoardPosition.y
-  return { x: hex.q, y: hex.r };
-}
-
-export interface IBoardProps {
-  val: Piece[];
-  state: PlayerState;
+interface IBoardProps {
+  selectedPiece: Piece | undefined;
+  validMoves: BoardPosition[];
+  boardPieces: Piece[];
   client: RtagClient;
 }
 
-export interface IBoardState {
+interface IBoardState {
   mouseDown: boolean;
   startDragOffsetX: number;
   startDragOffsetY: number;
@@ -119,19 +66,9 @@ class Board extends React.Component<IBoardProps, IBoardState> {
     const { height, width } = this;
     return (
       <div>
-        {this.props.state.unplayedPieces.map((p) => (
-          <button
-            type="button"
-            onClick={() => this.unplayedPieceClicked(p.id)}
-          >{`${Color[p.color]} - ${PieceType[p.type]}`}</button>
-        ))}
         <canvas ref={this.setCanvasRef} height={height} width={width} />
       </div>
     );
-  }
-
-  private unplayedPieceClicked(id: PieceId) {
-    this.props.client.selectPiece({ pieceId: id }, (e) => console.log(e));
   }
 
   private mouseDown = (evt: MouseEvent) => {
@@ -166,7 +103,7 @@ class Board extends React.Component<IBoardProps, IBoardState> {
   };
 
   private handleClick = (evt: MouseEvent) => {
-    const { client, state, val } = this.props;
+    const { client, boardPieces, selectedPiece, validMoves } = this.props;
     const { translatePosX, translatePosY, scale } = this.state;
     const { height, width, pieceSize } = this;
     const x = evt.pageX - this.canvas!.offsetLeft;
@@ -185,14 +122,14 @@ class Board extends React.Component<IBoardProps, IBoardState> {
 
     if (
       // If a piece is already selected, and the space that was selected is a valid move: move the piece
-      state.selectedPiece &&
-      state.validMoves.find(
+      selectedPiece &&
+      validMoves.find(
         (m) => m.x === clickedPosition.x && m.y === clickedPosition.y
       )
     ) {
       client.movePiece(
         {
-          pieceId: state.selectedPiece.id,
+          pieceId: selectedPiece.id,
           position: clickedPosition,
         },
         (e) => {
@@ -201,7 +138,7 @@ class Board extends React.Component<IBoardProps, IBoardState> {
       );
     } else {
       const pieceClicked = maxBy(
-        val.filter(
+        boardPieces.filter(
           (p) =>
             p.position &&
             p.position.x === clickedPosition.x &&
@@ -224,10 +161,10 @@ class Board extends React.Component<IBoardProps, IBoardState> {
   };
 
   private drawBoard() {
-    const { props, height, width } = this;
-    const { val, state } = props;
+    const { height, width } = this;
+    const { boardPieces, validMoves } = this.props;
     const pieces: { [key: string]: Piece } = {};
-    val.forEach((p) => {
+    boardPieces.forEach((p) => {
       pieces[`${p.position!.x}${p.position!.y}`] = p;
     });
     if (this.canvas) {
@@ -245,13 +182,13 @@ class Board extends React.Component<IBoardProps, IBoardState> {
       if (ctx) {
         ctx.clearRect(0, 0, width, height);
         Object.values(pieces).forEach((p) => this.drawPiece(ctx, p));
-        state.validMoves.forEach((m) => this.drawValidMoves(ctx, m));
+        validMoves.forEach((m) => this.drawValidMoves(ctx, m));
       }
     }
   }
 
   private drawPiece(ctx: CanvasRenderingContext2D, piece: Piece) {
-    const { selectedPiece } = this.props.state;
+    const { selectedPiece } = this.props;
     const { id, position, color, type } = piece;
     const colorStr = color === Color.WHITE ? "#D2B48C" : "#243447";
     const textStr = `${id} ${PieceType[type]} (${position!.x}, ${position!.y})`;
@@ -303,4 +240,5 @@ class Board extends React.Component<IBoardProps, IBoardState> {
     ctx.fillText(text, actual_x, actual_y);
   }
 }
-export default reactToWebComponent(Board, React, ReactDOM);
+
+export default Board;

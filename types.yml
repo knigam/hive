@@ -1,7 +1,6 @@
 types:
   PlayerName: string
   PieceId: number
-  BoardPieces: Piece[]
 
   PieceType:
     - QUEEN
@@ -34,14 +33,14 @@ types:
     stack?: number
 
   PlayerState:
-    creator: PlayerName
+    isCreator: boolean
     creatorColor?: Color
     tournament: boolean
     color: Color
     selectedPiece?: Piece
     validMoves: BoardPosition[]
     unplayedPieces: Piece[]
-    boardPieces: BoardPieces
+    boardPieces: Piece[]
     currentPlayerTurn: Color
     players: PlayerName[]
     status: GameStatus

@@ -86,28 +86,29 @@ export class Impl implements Methods<InternalState> {
     userData: UserData,
     _request: IPlayGameRequest
   ): string | void {
-    const { creatorName, creatorColor, players } = state;
+    const { creatorId, creatorName, creatorColor, players } = state;
+    const { id, name } = userData;
     if (gameStatus(state) !== GameStatus.NOT_STARTED) {
       return "Game has already been started";
-    } else if (state.creatorId === userData.id) {
+    } else if (creatorId === id) {
       return "Waiting for another player to start playing the game";
     } else if (players.length === 0) {
       return `${creatorName} must set up the game before it can be started`;
     }
 
-    const numConflicts = players.filter((p) => p === userData.name).length;
+    const numConflicts = players.filter((p) => p === name).length;
     state.players.push(
-      `${userData.name}${numConflicts > 0 ? `#${numConflicts + 1}` : ""}`
+      `${name}${numConflicts > 0 ? `#${numConflicts + 1}` : ""}`
     );
 
-    state.color[state.players[0]] =
+    state.color[creatorId] =
       creatorColor !== undefined
         ? creatorColor
         : Math.random() < 0.5
         ? Color.WHITE
         : Color.BLACK; // Assign whichever color was picked to creator or random if nothing was picked
-    state.color[state.players[1]] =
-      state.color[state.players[0]] === Color.WHITE ? Color.BLACK : Color.WHITE; // Assign the unused color to the new player
+    state.color[id] =
+      state.color[creatorId] === Color.WHITE ? Color.BLACK : Color.WHITE; // Assign the unused color to the new player
     state.currentPlayerTurn = Color.WHITE; // White always goes first
   }
 
@@ -207,6 +208,7 @@ export class Impl implements Methods<InternalState> {
 
   getUserState(state: InternalState, userData: UserData): PlayerState {
     const {
+      creatorId,
       creatorName: creator,
       creatorColor,
       tournament,
@@ -217,7 +219,8 @@ export class Impl implements Methods<InternalState> {
       unplayedPieces,
       board,
     } = state;
-    const currentPlayerColor = state.color[userData.name];
+    const { id } = userData;
+    const currentPlayerColor = state.color[id];
     const selectedPieceForPlayer =
       selectedPiece &&
       canSelectPiece(currentPlayerColor, currentPlayerTurn!, selectedPiece)
@@ -225,10 +228,10 @@ export class Impl implements Methods<InternalState> {
         : undefined;
 
     return {
-      creator,
+      isCreator: id === creatorId,
       creatorColor,
       tournament,
-      color: color[userData.name],
+      color: currentPlayerColor,
       currentPlayerTurn: currentPlayerTurn || Color.WHITE,
       players,
       status: gameStatus(state),
