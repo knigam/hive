@@ -9,11 +9,10 @@ import {
   axialToCube,
 } from "../helpers/hex";
 
-const HEIGHT = 500;
-const WIDTH = 500;
-const PIECE_SIZE = 50;
-
 interface IBoardProps {
+  height: number;
+  width: number;
+  pieceSize: number;
   selectedPiece: Piece | undefined;
   validMoves: BoardPosition[];
   boardPieces: Piece[];
@@ -40,18 +39,12 @@ class Board extends React.Component<IBoardProps, IBoardState> {
   };
   private canvas?: HTMLCanvasElement;
   private setCanvasRef: (element: HTMLCanvasElement) => void;
-  private height: number;
-  private width: number;
-  private pieceSize: number;
 
   constructor(props: IBoardProps) {
     super(props);
     this.setCanvasRef = (element) => {
       this.canvas = element;
     };
-    this.height = HEIGHT;
-    this.width = WIDTH;
-    this.pieceSize = PIECE_SIZE;
   }
 
   componentDidMount() {
@@ -63,7 +56,7 @@ class Board extends React.Component<IBoardProps, IBoardState> {
   }
 
   render() {
-    const { height, width } = this;
+    const { height, width } = this.props;
     return (
       <div>
         <canvas ref={this.setCanvasRef} height={height} width={width} />
@@ -103,9 +96,16 @@ class Board extends React.Component<IBoardProps, IBoardState> {
   };
 
   private handleClick = (evt: MouseEvent) => {
-    const { client, boardPieces, selectedPiece, validMoves } = this.props;
+    const {
+      client,
+      boardPieces,
+      selectedPiece,
+      validMoves,
+      height,
+      width,
+      pieceSize,
+    } = this.props;
     const { translatePosX, translatePosY, scale } = this.state;
-    const { height, width, pieceSize } = this;
     const x = evt.pageX - this.canvas!.offsetLeft;
     const y = evt.pageY - this.canvas!.offsetTop;
 
@@ -161,7 +161,7 @@ class Board extends React.Component<IBoardProps, IBoardState> {
   };
 
   private drawBoard() {
-    const { height, width } = this;
+    const { height, width } = this.props;
     const { boardPieces, validMoves } = this.props;
     const pieces: { [key: string]: Piece } = {};
     boardPieces.forEach((p) => {
@@ -215,7 +215,7 @@ class Board extends React.Component<IBoardProps, IBoardState> {
     text: string
   ) {
     const { x, y } = position;
-    const { height, width, pieceSize } = this;
+    const { height, width, pieceSize } = this.props;
     const { translatePosX, translatePosY, scale } = this.state;
     const size = pieceSize * scale;
     const center_x = width / 2 + translatePosX;
