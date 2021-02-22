@@ -1,0 +1,24 @@
+.HiveApp {
+  text-align: center;
+}
+
+#urlText {
+  caret-color: transparent;
+}
+
+#urlText::selection {
+  color: white;
+  background: gray;
+}
+
+div.GameSettings {
+  display: inline-block;
+  text-align: left;
+  margin: 15px;
+  & select {
+    margin: 7px;
+  }
+  & label input {
+    margin: 7px;
+  }
+}

@@ -58,12 +58,24 @@ class Lobby extends React.Component<ILobbyProps, ILobbyState> {
 
     return (
       <div>
-        <h3>{this.getSessionCode()}</h3>
+        <h3>Game Code: {this.getSessionCode()}</h3>
         <span>
-          <input type="url" value={this.url} id="urlText" />
+          <input
+            type="url"
+            value={this.url}
+            id="urlText"
+            style={{ width: `${this.url.length * 6}px` }}
+          />
           <button onClick={this.copyUrl}>Copy</button>
         </span>
-        <div>
+        <br />
+        {players.length === 0 &&
+          (isCreator ? (
+            <h5>You must save settings before game can start</h5>
+          ) : (
+            <h5>Waiting on game creator to finish setting up the game</h5>
+          ))}
+        <div className="GameSettings">
           <select
             value={
               creatorColor === undefined ? "undefined" : Color[creatorColor]
@@ -75,24 +87,17 @@ class Lobby extends React.Component<ILobbyProps, ILobbyState> {
             <option value={Color[Color.BLACK]}>{Color[Color.BLACK]}</option>
           </select>
           <br />
-          {players.length === 0 &&
-            (isCreator ? (
-              <h5>You must save settings before game can start</h5>
-            ) : (
-              <h5>Waiting on game creator to finish setting up the game</h5>
-            ))}
           <label>
-            Tournament Rules
             <input
               type="checkbox"
               id="tournamentCheckbox"
               checked={tournament}
               onChange={(event) => this.checkboxChanged(event, "tournament")}
             />
+            Tournament Rules
           </label>
           <br />
           <label>
-            Ladybug
             <input
               type="checkbox"
               id="ladybugCheckbox"
@@ -101,10 +106,10 @@ class Lobby extends React.Component<ILobbyProps, ILobbyState> {
                 this.checkboxChanged(event, "isLadybugSelected")
               }
             />
+            Ladybug
           </label>
           <br />
           <label>
-            Mosquito
             <input
               type="checkbox"
               id="mosquitoCheckbox"
@@ -113,10 +118,10 @@ class Lobby extends React.Component<ILobbyProps, ILobbyState> {
                 this.checkboxChanged(event, "isMosquitoSelected")
               }
             />
+            Mosquito
           </label>
           <br />
           <label>
-            Pillbug
             <input
               type="checkbox"
               id="pillbugCheckbox"
@@ -125,25 +130,26 @@ class Lobby extends React.Component<ILobbyProps, ILobbyState> {
                 this.checkboxChanged(event, "isPillbugSelected")
               }
             />
+            Pillbug
           </label>
-          <br />
-          {isCreator && (
-            <button
-              onClick={this.saveSettings}
-              disabled={players.length !== 0 && !edited}
-            >
-              Save
-            </button>
-          )}
-          {isCreator && edited && (
-            <button onClick={this.resetSettings}>Reset</button>
-          )}
-          {!isCreator && (
-            <button onClick={this.playGame} disabled={players.length === 0}>
-              Play!
-            </button>
-          )}
         </div>
+        <br />
+        {isCreator && (
+          <button
+            onClick={this.saveSettings}
+            disabled={players.length !== 0 && !edited}
+          >
+            Save
+          </button>
+        )}
+        {isCreator && edited && (
+          <button onClick={this.resetSettings}>Reset</button>
+        )}
+        {!isCreator && (
+          <button onClick={this.playGame} disabled={players.length === 0}>
+            Play!
+          </button>
+        )}
       </div>
     );
   }
