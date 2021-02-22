@@ -122,7 +122,7 @@ export class Impl implements Methods<InternalState> {
     }
 
     const { color, currentPlayerTurn, unplayedPieces, board } = state;
-    const currentPlayerColor = color[userData.name];
+    const currentPlayerColor = getCurrentPlayerColor(state, userData);
     const piece =
       request.pieceId === undefined
         ? undefined
@@ -155,7 +155,7 @@ export class Impl implements Methods<InternalState> {
       unplayedPieces,
       tournament,
     } = state;
-    const currentPlayerColor = color[userData.name];
+    const currentPlayerColor = getCurrentPlayerColor(state, userData);
     const piece = getPieceById(pieceId, unplayedPieces, board);
 
     if (canSelectPiece(currentPlayerColor, currentPlayerTurn!, piece)) {
@@ -277,6 +277,13 @@ function gameStatus(state: InternalState) {
   } else {
     return GameStatus.IN_PROGRESS;
   }
+}
+
+function getCurrentPlayerColor(
+  state: InternalState,
+  userData: UserData
+): Color {
+  return state.color[userData.id];
 }
 
 function canSelectPiece(

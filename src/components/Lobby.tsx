@@ -61,7 +61,7 @@ class Lobby extends React.Component<ILobbyProps, ILobbyState> {
         <h3>{this.getSessionCode()}</h3>
         <span>
           <input type="url" value={this.url} id="urlText" />
-          <button onClick={this.copyUrl}>Copy text</button>
+          <button onClick={this.copyUrl}>Copy</button>
         </span>
         <div>
           <select
