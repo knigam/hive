@@ -1,0 +1,16 @@
+{
+  "name": "hive-rtag-server",
+  "version": "0.0.1",
+  "type": "module",
+  "dependencies": {
+    "lodash-es": "^4.17.20"
+  },
+  "devDependencies": {
+    "@types/lodash-es": "^4.17.4",
+    "sass": "^1.32.8",
+    "ts-node": "^9.1.1"
+  },
+  "scripts": {
+    "postinstall": "cd .rtag && npm install"
+  }
+}
