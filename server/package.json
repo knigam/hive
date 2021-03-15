@@ -3,6 +3,7 @@
   "version": "0.0.1",
   "type": "module",
   "dependencies": {
+    "@types/hookrouter": "^2.2.5",
     "lodash-es": "^4.17.20"
   },
   "devDependencies": {

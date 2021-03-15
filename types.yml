@@ -32,12 +32,19 @@ types:
     position?: BoardPosition
     stack?: number
 
+  Move:
+    color: Color
+    piece: Piece
+    movedFrom?: BoardPosition
+    movedTo: BoardPosition
+
   PlayerState:
     isCreator: boolean
     creatorColor?: Color
     tournament: boolean
     color: Color
     selectedPiece?: Piece
+    lastMove?: Move
     validMoves: BoardPosition[]
     unplayedPieces: Piece[]
     boardPieces: Piece[]

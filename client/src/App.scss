@@ -1,5 +1,91 @@
+$primary-color: #119F32;
+$secondary-color: #F2ED51;
+$player-white-background-color: #DBE1C9;
+$player-white-piece-text: #020A10;
+$player-black-background-color: #4B7C3D;
+$player-black-piece-text: #DBE1C9;
+$background-color: #020A10;
+$drawer-color: #0A1D2B;
+
 .HiveApp {
   text-align: center;
+  overflow: auto;
+}
+
+.Board {
+  .overlay {
+    position: absolute;
+    top: 0;
+    color: $secondary-color;
+  }
+}
+
+.PieceDrawer {
+  /* Style the tab */
+  .tabs {
+    overflow: hidden;
+    color: $secondary-color;
+    // border-bottom: 1px solid $primary-color;
+    background-color: $drawer-color;
+  }
+
+  /* Style the buttons that are used to open the tab content */
+  .tabs button {
+    background-color: inherit;
+    color: $secondary-color;
+    float: left;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    padding: 14px 16px;
+    transition: 0.3s;
+  }
+
+  /* Change background color of buttons on hover */
+  .tabs button:hover {
+    border-bottom: 1px solid $secondary-color;
+  }
+
+  /* Create an active/current tablink class */
+  .tabs button.active {
+    border-bottom: 1px solid $primary-color;;
+  }
+
+  .tabs .status {
+    float: right;
+    padding: 12px 16px;
+  }
+
+  /* Style the tab content */
+  .pieces {
+    background-color: $drawer-color;
+    display: flex;
+    align-items: center;
+    height: calc(100% - 54px);
+    overflow-x: auto;
+    white-space: nowrap;
+    padding: 5px 12px;
+    -webkit-overflow-scrolling: touch;
+
+    & button {
+      height: 75%;
+      margin: 2px;
+      width: 100px;
+    }
+
+    .white-piece-btn {
+      background-color: $player-white-background-color;
+      color: $player-white-piece-text;
+    }
+    .black-piece-btn {
+      background-color: $player-black-background-color;
+      color: $player-black-piece-text;
+    }
+    .active {
+      background-color: #99ddff;
+      color: black;
+    }
+  }
 }
 
 #urlText {

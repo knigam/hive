@@ -12,7 +12,7 @@ const DEFAULT_PIECES = [
   PieceType.GRASSHOPPER,
   PieceType.GRASSHOPPER,
   PieceType.BEETLE,
-  PieceType.GRASSHOPPER,
+  PieceType.BEETLE,
   PieceType.SPIDER,
   PieceType.SPIDER,
 ];
@@ -65,6 +65,7 @@ class Lobby extends React.Component<ILobbyProps, ILobbyState> {
             value={this.url}
             id="urlText"
             style={{ width: `${this.url.length * 6}px` }}
+            readOnly
           />
           <button onClick={this.copyUrl}>Copy</button>
         </span>
@@ -76,7 +77,10 @@ class Lobby extends React.Component<ILobbyProps, ILobbyState> {
             <h5>Waiting on game creator to finish setting up the game</h5>
           ))}
         <div className="GameSettings">
+          <label>
+            Game creator color
           <select
+            disabled={!isCreator}
             value={
               creatorColor === undefined ? "undefined" : Color[creatorColor]
             }
@@ -86,19 +90,22 @@ class Lobby extends React.Component<ILobbyProps, ILobbyState> {
             <option value={Color[Color.WHITE]}>{Color[Color.WHITE]}</option>
             <option value={Color[Color.BLACK]}>{Color[Color.BLACK]}</option>
           </select>
+          </label>
           <br />
           <label>
             <input
+              disabled={!isCreator}
               type="checkbox"
               id="tournamentCheckbox"
               checked={tournament}
               onChange={(event) => this.checkboxChanged(event, "tournament")}
             />
-            Tournament Rules
+            Tournament rules
           </label>
           <br />
           <label>
             <input
+              disabled={!isCreator}
               type="checkbox"
               id="ladybugCheckbox"
               checked={isLadybugSelected}
@@ -111,6 +118,7 @@ class Lobby extends React.Component<ILobbyProps, ILobbyState> {
           <br />
           <label>
             <input
+              disabled={!isCreator}
               type="checkbox"
               id="mosquitoCheckbox"
               checked={isMosquitoSelected}
@@ -123,6 +131,7 @@ class Lobby extends React.Component<ILobbyProps, ILobbyState> {
           <br />
           <label>
             <input
+              disabled={!isCreator}
               type="checkbox"
               id="pillbugCheckbox"
               checked={isPillbugSelected}
@@ -244,7 +253,7 @@ class Lobby extends React.Component<ILobbyProps, ILobbyState> {
   }
 
   private getSessionCode(): string {
-    return this.url.split("state/")[1].toUpperCase();
+    return this.url.split("game/")[1].toUpperCase();
   }
 
   private copyUrl(): void {
