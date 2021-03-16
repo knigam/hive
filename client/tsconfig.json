@@ -6,5 +6,8 @@
     "jsx": "react",
     "target": "esnext",
     "moduleResolution": "node"
-  }
+  },
+  "include": [
+    "src",
+  ]
 }

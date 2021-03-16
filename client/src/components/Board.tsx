@@ -17,10 +17,10 @@ import {
 import { getAllImagePaths, getImagePath } from "../helpers/images";
 
 const CANVAS_BACKGROUND_COLOR = "#020A10";
-const PLAYER_WHITE_BACKGROUND_COLOR = "#DBE1C9";
-const PLAYER_WHITE_PIECE_TEXT = "#020A10";
-const PLAYER_BLACK_BACKGROUND_COLOR = "#4B7C3D";
-const PLAYER_BLACK_PIECE_TEXT = "#DBE1C9";
+const PLAYER_WHITE_BACKGROUND_COLOR = "rgb(219,225,201)";
+const PLAYER_WHITE_STACK_BACKGROUND_COLOR = "rgb(219,225,201,0.5)";
+const PLAYER_BLACK_BACKGROUND_COLOR = "rgb(75,124,61)";
+const PLAYER_BLACK_STACK_BACKGROUND_COLOR = "rgb(75,124,61,0.5)";
 const SELECTED_PIECE_BORDER_COLOR = "#FF0000";
 const VALID_MOVE_BORDER = "#2F80ED";
 const VALID_MOVE_FILL_COLOR = "rgb(47,128,237,0.2)";
@@ -318,13 +318,16 @@ class Board extends React.Component<IBoardProps, IBoardState> {
   private drawPiece(ctx: CanvasRenderingContext2D, piece: Piece) {
     const { selectedPiece, lastMove } = this.props;
     const { id, position, color, type } = piece;
+    const isInStack = piece.stack! > 0;
     const colorStr =
       color === Color.WHITE
-        ? PLAYER_WHITE_BACKGROUND_COLOR
+        ? isInStack
+          ? PLAYER_WHITE_STACK_BACKGROUND_COLOR
+          : PLAYER_WHITE_BACKGROUND_COLOR
+        : isInStack
+        ? PLAYER_BLACK_STACK_BACKGROUND_COLOR
         : PLAYER_BLACK_BACKGROUND_COLOR;
-    const textStr = `${startCase(PieceType[type].toLowerCase())}${
-      piece.stack! > 0 ? ` ${piece.stack! + 1}` : ""
-    }`;
+
     this.drawHex(ctx, position!, colorStr, getImagePath(type, color));
     if (selectedPiece && id === selectedPiece.id) {
       ctx.lineWidth = PIECE_BORDER_WIDTH;
@@ -386,13 +389,7 @@ class Board extends React.Component<IBoardProps, IBoardState> {
     ctx.fillStyle = color;
     ctx.fill();
     ctx.closePath();
-    ctx.fillStyle =
-      color === PLAYER_WHITE_BACKGROUND_COLOR
-        ? PLAYER_WHITE_PIECE_TEXT
-        : PLAYER_BLACK_PIECE_TEXT;
-    // ctx.textAlign = 'center'
-    // ctx.font = `${DEFAULT_FONT_TEXT_SIZE * scale}px Verdana`
-    // ctx.fillText(text, actual_x, actual_y)
+
     const image = this.images[imagePath];
     if (image) {
       ctx.drawImage(

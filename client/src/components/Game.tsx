@@ -76,11 +76,11 @@ async function getRtag(
   history: History,
   onStateChange: (state: PlayerState) => void
 ): Promise<RtagClient> {
-  const storedUserData = sessionStorage.getItem("user");
+  const storedUserData = localStorage.getItem("user");
   const token: string = storedUserData
     ? JSON.parse(storedUserData).token
     : await RtagClient.loginAnonymous().then((t) => {
-        sessionStorage.setItem("user", JSON.stringify({ token: t }));
+        localStorage.setItem("user", JSON.stringify({ token: t }));
         return t;
       });
   const stateId: string =
