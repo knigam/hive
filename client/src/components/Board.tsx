@@ -397,10 +397,10 @@ class Board extends React.Component<IBoardProps, IBoardState> {
     if (image) {
       ctx.drawImage(
         image,
-        actual_x - (image.width * scale) / 2,
-        actual_y - (image.height * scale) / 2,
-        image.width * scale,
-        image.height * scale
+        actual_x - (image.width * 1.5 * scale) / 2, // multiplying by 1.5 to make default icon size bigger since they were created for a piece size of 50
+        actual_y - (image.height * 1.5 * scale) / 2,
+        image.width * 1.5 * scale,
+        image.height * 1.5 * scale
       );
     }
   }
