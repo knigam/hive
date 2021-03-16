@@ -28,7 +28,6 @@ const VALID_MOVE_ON_PIECE_FILL_COLOR = "rgb(0,0,0,0.6)";
 const LAST_MOVE_BORDER = "rgba(245,73,139,1)";
 const LAST_MOVE_FILL_COLOR = "rgba(245,73,139,0.4)";
 const PIECE_BORDER_WIDTH = 1.5;
-const DEFAULT_FONT_TEXT_SIZE = 15;
 
 interface IBoardProps {
   height: number;
@@ -76,6 +75,7 @@ class Board extends React.Component<IBoardProps, IBoardState> {
       image.src = path;
       image.onload = () => {
         this.images[path] = image;
+        this.drawBoard();
       };
     });
   }

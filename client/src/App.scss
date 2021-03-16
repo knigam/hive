@@ -1,11 +1,11 @@
-$primary-color: #119F32;
-$secondary-color: #F2ED51;
-$player-white-background-color: #DBE1C9;
-$player-white-piece-text: #020A10;
-$player-black-background-color: #4B7C3D;
-$player-black-piece-text: #DBE1C9;
-$background-color: #020A10;
-$drawer-color: #0A1D2B;
+$primary-color: #119f32;
+$secondary-color: #f2ed51;
+$player-white-background-color: #dbe1c9;
+$player-black-background-color: #4b7c3d;
+$player-white-piece-selected-color: #99ddff;
+$player-black-piece-selected-color: rgb(0, 0, 0, 0.6);
+$background-color: #020a10;
+$drawer-color: #0a1d2b;
 
 .HiveApp {
   text-align: center;
@@ -48,7 +48,7 @@ $drawer-color: #0A1D2B;
 
   /* Create an active/current tablink class */
   .tabs button.active {
-    border-bottom: 1px solid $primary-color;;
+    border-bottom: 1px solid $primary-color;
   }
 
   .tabs .status {
@@ -71,19 +71,26 @@ $drawer-color: #0A1D2B;
       height: 75%;
       margin: 2px;
       width: 100px;
+      border: none;
+      border-radius: 10px;
+
+      img {
+        width: 100%;
+        height: 100%;
+      }
     }
 
     .white-piece-btn {
       background-color: $player-white-background-color;
-      color: $player-white-piece-text;
     }
     .black-piece-btn {
       background-color: $player-black-background-color;
-      color: $player-black-piece-text;
     }
-    .active {
-      background-color: #99ddff;
-      color: black;
+    .white-piece-btn.active {
+      background-color: $player-white-piece-selected-color;
+    }
+    .black-piece-btn.active {
+      background-color: $player-black-piece-selected-color;
     }
   }
 }
