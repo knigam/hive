@@ -47,27 +47,16 @@ class Lobby extends React.Component<ILobbyProps, ILobbyState> {
 
   render() {
     const { isCreator, players } = this.props;
-    const {
-      edited,
-      tournament,
-      isLadybugSelected,
-      isMosquitoSelected,
-      isPillbugSelected,
-      creatorColor,
-    } = this.state;
+    const { edited, tournament, isLadybugSelected, isMosquitoSelected, isPillbugSelected, creatorColor } = this.state;
 
     return (
-      <div>
+      <div className="Lobby">
         <h3>Game Code: {this.getSessionCode()}</h3>
         <span>
-          <input
-            type="url"
-            value={this.url}
-            id="urlText"
-            style={{ width: `${this.url.length * 6}px` }}
-            readOnly
-          />
-          <button onClick={this.copyUrl}>Copy</button>
+          <input className="hive-input-btn-input" type="url" value={this.url} id="urlText" readOnly />
+          <button className="hive-btn hive-input-btn" onClick={this.copyUrl}>
+            Copy
+          </button>
         </span>
         <br />
         {players.length === 0 &&
@@ -76,20 +65,24 @@ class Lobby extends React.Component<ILobbyProps, ILobbyState> {
           ) : (
             <h5>Waiting on game creator to finish setting up the game</h5>
           ))}
+        {players.length === 1 &&
+          (isCreator ? (
+            <h5>Waiting on another player to join and start the game</h5>
+          ) : (
+            <h5>Press "Play!" to start the game</h5>
+          ))}
         <div className="GameSettings">
           <label>
             Game creator color
-          <select
-            disabled={!isCreator}
-            value={
-              creatorColor === undefined ? "undefined" : Color[creatorColor]
-            }
-            onChange={this.creatorColorChanged}
-          >
-            <option value="undefined">Random</option>
-            <option value={Color[Color.WHITE]}>{Color[Color.WHITE]}</option>
-            <option value={Color[Color.BLACK]}>{Color[Color.BLACK]}</option>
-          </select>
+            <select
+              disabled={!isCreator}
+              value={creatorColor === undefined ? "undefined" : Color[creatorColor]}
+              onChange={this.creatorColorChanged}
+            >
+              <option value="undefined">Random</option>
+              <option value={Color[Color.WHITE]}>{Color[Color.WHITE]}</option>
+              <option value={Color[Color.BLACK]}>{Color[Color.BLACK]}</option>
+            </select>
           </label>
           <br />
           <label>
@@ -109,9 +102,7 @@ class Lobby extends React.Component<ILobbyProps, ILobbyState> {
               type="checkbox"
               id="ladybugCheckbox"
               checked={isLadybugSelected}
-              onChange={(event) =>
-                this.checkboxChanged(event, "isLadybugSelected")
-              }
+              onChange={(event) => this.checkboxChanged(event, "isLadybugSelected")}
             />
             Ladybug
           </label>
@@ -122,9 +113,7 @@ class Lobby extends React.Component<ILobbyProps, ILobbyState> {
               type="checkbox"
               id="mosquitoCheckbox"
               checked={isMosquitoSelected}
-              onChange={(event) =>
-                this.checkboxChanged(event, "isMosquitoSelected")
-              }
+              onChange={(event) => this.checkboxChanged(event, "isMosquitoSelected")}
             />
             Mosquito
           </label>
@@ -135,27 +124,24 @@ class Lobby extends React.Component<ILobbyProps, ILobbyState> {
               type="checkbox"
               id="pillbugCheckbox"
               checked={isPillbugSelected}
-              onChange={(event) =>
-                this.checkboxChanged(event, "isPillbugSelected")
-              }
+              onChange={(event) => this.checkboxChanged(event, "isPillbugSelected")}
             />
             Pillbug
           </label>
         </div>
         <br />
         {isCreator && (
-          <button
-            onClick={this.saveSettings}
-            disabled={players.length !== 0 && !edited}
-          >
+          <button className="hive-btn" onClick={this.saveSettings} disabled={players.length !== 0 && !edited}>
             Save
           </button>
         )}
         {isCreator && edited && (
-          <button onClick={this.resetSettings}>Reset</button>
+          <button className="hive-btn" onClick={this.resetSettings}>
+            Reset
+          </button>
         )}
         {!isCreator && (
-          <button onClick={this.playGame} disabled={players.length === 0}>
+          <button className="hive-btn" onClick={this.playGame} disabled={players.length === 0}>
             Play!
           </button>
         )}
@@ -176,26 +162,14 @@ class Lobby extends React.Component<ILobbyProps, ILobbyState> {
 
   private saveSettings = () => {
     const { client } = this.props;
-    const {
-      creatorColor,
-      tournament,
-      isLadybugSelected,
-      isMosquitoSelected,
-      isPillbugSelected,
-    } = this.state;
+    const { creatorColor, tournament, isLadybugSelected, isMosquitoSelected, isPillbugSelected } = this.state;
     const pieces = [...DEFAULT_PIECES];
-    const extraPieces = [
-      PieceType.LADYBUG,
-      PieceType.MOSQUITO,
-      PieceType.PILLBUG,
-    ];
-    [isLadybugSelected, isMosquitoSelected, isPillbugSelected].forEach(
-      (i, idx) => {
-        if (i) {
-          pieces.push(extraPieces[idx]);
-        }
+    const extraPieces = [PieceType.LADYBUG, PieceType.MOSQUITO, PieceType.PILLBUG];
+    [isLadybugSelected, isMosquitoSelected, isPillbugSelected].forEach((i, idx) => {
+      if (i) {
+        pieces.push(extraPieces[idx]);
       }
-    );
+    });
 
     client.setupGame(
       {
@@ -216,26 +190,15 @@ class Lobby extends React.Component<ILobbyProps, ILobbyState> {
     this.props.client.playGame({}, (e) => console.log(e));
   };
 
-  private creatorColorChanged = (
-    event: React.ChangeEvent<HTMLSelectElement>
-  ) => {
+  private creatorColorChanged = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const val = event.target.value;
-    const color =
-      val === Color[Color.WHITE]
-        ? Color.WHITE
-        : val === Color[Color.BLACK]
-        ? Color.BLACK
-        : undefined;
+    const color = val === Color[Color.WHITE] ? Color.WHITE : val === Color[Color.BLACK] ? Color.BLACK : undefined;
     this.setState({ creatorColor: color, edited: true });
   };
 
   private checkboxChanged(
     event: React.ChangeEvent<HTMLInputElement>,
-    key:
-      | "tournament"
-      | "isLadybugSelected"
-      | "isMosquitoSelected"
-      | "isPillbugSelected"
+    key: "tournament" | "isLadybugSelected" | "isMosquitoSelected" | "isPillbugSelected"
   ) {
     if (key === "tournament") {
       this.setState({ [key]: event.target.checked, edited: true });

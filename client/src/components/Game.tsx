@@ -17,9 +17,7 @@ interface IGameProps {
 
 function Game(props: IGameProps) {
   const { height, width } = props;
-  const [playerState, setPlayerState] = useState<PlayerState | undefined>(
-    undefined
-  );
+  const [playerState, setPlayerState] = useState<PlayerState | undefined>(undefined);
   const [rtag, setRtag] = useState<RtagClient | undefined>(undefined);
   const [is404, setIs404] = useState<boolean>(false);
   const path = useLocation().pathname;
@@ -35,37 +33,26 @@ function Game(props: IGameProps) {
   }, [path]);
 
   if (playerState && rtag && !is404) {
-    const boardHeight = Math.min(
-      height * 0.8,
-      height - MIN_PIECE_DRAWER_HEIGHT
-    );
+    const boardHeight = Math.min(height * 0.8, height - MIN_PIECE_DRAWER_HEIGHT);
     const pieceDrawerHeight = height - boardHeight;
 
     return (
       <div>
-        {playerState.status === GameStatus.NOT_STARTED && (
-          <Lobby {...playerState} client={rtag}></Lobby>
-        )}
+        {playerState.status === GameStatus.NOT_STARTED && <Lobby {...playerState} client={rtag}></Lobby>}
         {playerState.status !== GameStatus.NOT_STARTED && (
           <div>
-            <Board
-              pieceSize={PIECE_SIZE}
-              height={boardHeight}
-              width={width}
-              {...playerState}
-              client={rtag}
-            ></Board>
-            <PieceDrawer
-              client={rtag}
-              height={pieceDrawerHeight}
-              {...playerState}
-            ></PieceDrawer>
+            <Board pieceSize={PIECE_SIZE} height={boardHeight} width={width} {...playerState} client={rtag}></Board>
+            <PieceDrawer client={rtag} height={pieceDrawerHeight} {...playerState}></PieceDrawer>
           </div>
         )}
       </div>
     );
   } else if (is404) {
-    return <div>404 Game not found</div>;
+    return (
+      <div className="background">
+        <span className="fourOhFour">Game with this Game Code does not exist</span>
+      </div>
+    );
   } else {
     return <div></div>;
   }

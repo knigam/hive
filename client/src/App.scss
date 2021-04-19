@@ -10,6 +10,82 @@ $drawer-color: #0a1d2b;
 .HiveApp {
   text-align: center;
   overflow: auto;
+
+  .hive-btn {
+    background-color: $primary-color;
+    line-height: 1.15;
+    margin: 10px 5px;
+    border-radius: 8px;
+    border: none;
+    padding: 16px 36px;
+    font-size: 16px;
+    font-weight: 400;
+    color: $background-color;
+    outline: none;
+  }
+
+  .hive-btn:hover {
+    background-color: $secondary-color;
+  }
+
+  @media (min-width: 400px) {
+    .hive-input-btn {
+      border-radius: 0px 8px 8px 0px;
+      margin-left: 0px;
+    }
+  }
+
+  .hive-input-btn-input {
+    line-height: 1.15;
+    width: 250px;
+    border-color: $primary-color;
+    color: $secondary-color;
+    font-size: 16px;
+    font-weight: 400;
+    border-style: solid;
+    border-radius: 8px;
+    padding: 14px 36px;
+    background-color: $background-color;
+    outline: none;
+
+    @media (min-width: 400px) {
+      border-radius: 8px 0px 0px 8px;
+      border-right: none;
+    }
+  }
+
+  .fourOhFour {
+    color: $secondary-color;
+    position: relative;
+    top: 70%;
+  }
+
+  .background {
+    height: 100%;
+    background-image: url(images/Home-Background.svg);
+    background-position: center 10%;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    background-size: auto;
+    background-color: $background-color;
+  }
+}
+
+.Title {
+  .inputs {
+    position: relative;
+    top: 70%;
+  }
+}
+
+.Lobby {
+  height: 100%;
+  padding-top: 30px;
+  background-color: $background-color;
+  color: $secondary-color;
+  h3 {
+    color: $secondary-color;
+  }
 }
 
 .Board {
