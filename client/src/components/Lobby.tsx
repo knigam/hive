@@ -1,7 +1,7 @@
 import { isEqual } from "lodash-es";
 import React from "react";
 import { RtagClient } from "../../.rtag/client";
-import { Color, Piece, PieceType, PlayerName } from "../../.rtag/types";
+import { Color, Piece, PieceType, PlayerName, Result } from "../../.rtag/types";
 
 const DEFAULT_PIECES = [
   PieceType.QUEEN,
@@ -171,15 +171,18 @@ class Lobby extends React.Component<ILobbyProps, ILobbyState> {
       }
     });
 
-    client.setupGame(
-      {
+    client
+      .setupGame({
         blackPieces: pieces,
         whitePieces: pieces,
         creatorColor,
         tournament,
-      },
-      (e) => console.log(e)
-    );
+      })
+      .then((result) => {
+        if (result.type === "error") {
+          console.log(result.error);
+        }
+      });
   };
 
   private resetSettings = () => {
@@ -187,7 +190,11 @@ class Lobby extends React.Component<ILobbyProps, ILobbyState> {
   };
 
   private playGame = () => {
-    this.props.client.playGame({}, (e) => console.log(e));
+    this.props.client.playGame({}).then((result) => {
+      if (result.type === "error") {
+        console.log(result.error);
+      }
+    });
   };
 
   private creatorColorChanged = (event: React.ChangeEvent<HTMLSelectElement>) => {

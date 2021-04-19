@@ -24,8 +24,10 @@ $drawer-color: #0a1d2b;
     outline: none;
   }
 
-  .hive-btn:hover {
-    background-color: $secondary-color;
+  @media (hover: hover) and (pointer: fine) {
+    .hive-btn:hover {
+      background-color: $secondary-color;
+    }
   }
 
   @media (min-width: 400px) {
@@ -118,10 +120,11 @@ $drawer-color: #0a1d2b;
   }
 
   /* Change background color of buttons on hover */
-  .tabs button:hover {
-    border-bottom: 1px solid $secondary-color;
+  @media (hover: hover) and (pointer: fine) {
+    .tabs button:hover {
+      border-bottom: 1px solid $secondary-color;
+    }
   }
-
   /* Create an active/current tablink class */
   .tabs button.active {
     border-bottom: 1px solid $primary-color;

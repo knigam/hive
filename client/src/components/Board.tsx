@@ -1,19 +1,8 @@
 import React from "react";
-import {
-  BoardPosition,
-  Color,
-  Move,
-  Piece,
-  PieceType,
-} from "../../.rtag/types";
+import { BoardPosition, Color, Move, Piece, PieceType } from "../../.rtag/types";
 import { RtagClient } from "../../.rtag/client";
 import { maxBy, startCase } from "lodash-es";
-import {
-  axialToBoardPosition,
-  cubeToAxial,
-  cubeRound,
-  axialToCube,
-} from "../helpers/hex";
+import { axialToBoardPosition, cubeToAxial, cubeRound, axialToCube } from "../helpers/hex";
 import { getAllImagePaths, getImagePath } from "../helpers/images";
 
 const CANVAS_BACKGROUND_COLOR = "#020A10";
@@ -98,16 +87,10 @@ class Board extends React.Component<IBoardProps, IBoardState> {
             selectedPiece.stack !== undefined &&
             selectedPiece.stack > 0 &&
             boardPieces
-              .filter(
-                (p) =>
-                  p.position!.x == selectedPiece.position!.x &&
-                  p.position!.y == selectedPiece.position!.y
-              )
+              .filter((p) => p.position!.x == selectedPiece.position!.x && p.position!.y == selectedPiece.position!.y)
               .sort((a, b) => b.stack! - a.stack!)
               .map((p) => (
-                <ul>{`${startCase(Color[p.color].toLowerCase())} - ${startCase(
-                  PieceType[p.type].toLowerCase()
-                )}`}</ul>
+                <ul>{`${startCase(Color[p.color].toLowerCase())} - ${startCase(PieceType[p.type].toLowerCase())}`}</ul>
               ))}
         </div>
       </div>
@@ -126,8 +109,7 @@ class Board extends React.Component<IBoardProps, IBoardState> {
       // multi-touch to zoom
       const [touch1, touch2] = evt.touches;
       const distance = Math.sqrt(
-        Math.pow(touch2.clientX - touch1.clientX, 2) +
-          Math.pow(touch2.clientY - touch1.clientY, 2)
+        Math.pow(touch2.clientX - touch1.clientX, 2) + Math.pow(touch2.clientY - touch1.clientY, 2)
       );
       this.setState({ mouseDown: true, pinchToZoomStartDistance: distance });
     }
@@ -149,15 +131,10 @@ class Board extends React.Component<IBoardProps, IBoardState> {
         // multi-touch to zoom
         const [touch1, touch2] = evt.touches;
         const distance = Math.sqrt(
-          Math.pow(touch2.clientX - touch1.clientX, 2) +
-            Math.pow(touch2.clientY - touch1.clientY, 2)
+          Math.pow(touch2.clientX - touch1.clientX, 2) + Math.pow(touch2.clientY - touch1.clientY, 2)
         );
         this.setState((prevState) => ({
-          scale: Math.max(
-            0.1,
-            prevState.scale +
-              0.025 * (distance > prevState.pinchToZoomStartDistance ? 1 : -1)
-          ),
+          scale: Math.max(0.1, prevState.scale + 0.025 * (distance > prevState.pinchToZoomStartDistance ? 1 : -1)),
         }));
       }
     }
@@ -195,15 +172,7 @@ class Board extends React.Component<IBoardProps, IBoardState> {
   };
 
   private handleClick = (evt: MouseEvent) => {
-    const {
-      client,
-      boardPieces,
-      selectedPiece,
-      validMoves,
-      height,
-      width,
-      pieceSize,
-    } = this.props;
+    const { client, boardPieces, selectedPiece, validMoves, height, width, pieceSize } = this.props;
     const { translatePosX, translatePosY, scale } = this.state;
     const x = evt.pageX - this.canvas!.offsetLeft;
     const y = evt.pageY - this.canvas!.offsetTop;
@@ -215,45 +184,43 @@ class Board extends React.Component<IBoardProps, IBoardState> {
     const q = ((2.0 / 3) * (x - center_x)) / size;
     const r = ((y - center_y) / size - (Math.sqrt(3) / 2) * q) / Math.sqrt(3);
 
-    const clickedPosition = axialToBoardPosition(
-      cubeToAxial(cubeRound(axialToCube({ q, r })))
-    );
+    const clickedPosition = axialToBoardPosition(cubeToAxial(cubeRound(axialToCube({ q, r }))));
 
     if (
       // If a piece is already selected, and the space that was selected is a valid move: move the piece
       selectedPiece &&
-      validMoves.find(
-        (m) => m.x === clickedPosition.x && m.y === clickedPosition.y
-      )
+      validMoves.find((m) => m.x === clickedPosition.x && m.y === clickedPosition.y)
     ) {
-      client.movePiece(
-        {
+      client
+        .movePiece({
           pieceId: selectedPiece.id,
           position: clickedPosition,
-        },
-        (e) => {
-          console.log(e);
-        }
-      );
+        })
+        .then((result) => {
+          if (result.type === "error") {
+            console.log(result.error);
+          }
+        });
     } else {
       const pieceClicked = maxBy(
         boardPieces.filter(
-          (p) =>
-            p.position &&
-            p.position.x === clickedPosition.x &&
-            p.position.y === clickedPosition.y
+          (p) => p.position && p.position.x === clickedPosition.x && p.position.y === clickedPosition.y
         ),
         (p) => p.stack
       );
       if (pieceClicked) {
         // If the selected space is a piece on the board: select that piece
-        client.selectPiece({ pieceId: pieceClicked.id }, (e) => {
-          console.log(e);
+        client.selectPiece({ pieceId: pieceClicked.id }).then((result) => {
+          if (result.type === "error") {
+            console.log(result.error);
+          }
         });
       } else {
         // Otherwise: select "undefined" to unselect any currently selected piece
-        client.selectPiece({ pieceId: undefined }, (e) => {
-          console.log(e);
+        client.selectPiece({ pieceId: undefined }).then((result) => {
+          if (result.type === "error") {
+            console.log(result.error);
+          }
         });
       }
     }
@@ -264,10 +231,7 @@ class Board extends React.Component<IBoardProps, IBoardState> {
     const { boardPieces, validMoves, selectedPiece, lastMove } = this.props;
     const pieces: { [key: string]: Piece } = {};
     boardPieces.forEach((p) => {
-      if (
-        !pieces[this.getBoardPosKey(p.position!)] ||
-        pieces[this.getBoardPosKey(p.position!)].stack! < p.stack!
-      ) {
+      if (!pieces[this.getBoardPosKey(p.position!)] || pieces[this.getBoardPosKey(p.position!)].stack! < p.stack!) {
         pieces[this.getBoardPosKey(p.position!)] = p;
       }
     });
@@ -300,13 +264,7 @@ class Board extends React.Component<IBoardProps, IBoardState> {
         ctx.fillStyle = CANVAS_BACKGROUND_COLOR;
         ctx.fillRect(0, 0, width, height);
         Object.values(pieces).forEach((p) => this.drawPiece(ctx, p));
-        validMoves.forEach((m) =>
-          this.drawValidMove(
-            ctx,
-            m,
-            pieces[this.getBoardPosKey(m)] !== undefined
-          )
-        );
+        validMoves.forEach((m) => this.drawValidMove(ctx, m, pieces[this.getBoardPosKey(m)] !== undefined));
       }
     }
   }
@@ -347,26 +305,15 @@ class Board extends React.Component<IBoardProps, IBoardState> {
     }
   }
 
-  private drawValidMove(
-    ctx: CanvasRenderingContext2D,
-    position: BoardPosition,
-    isOnPiece: boolean
-  ) {
-    const color = isOnPiece
-      ? VALID_MOVE_ON_PIECE_FILL_COLOR
-      : VALID_MOVE_FILL_COLOR;
+  private drawValidMove(ctx: CanvasRenderingContext2D, position: BoardPosition, isOnPiece: boolean) {
+    const color = isOnPiece ? VALID_MOVE_ON_PIECE_FILL_COLOR : VALID_MOVE_FILL_COLOR;
     this.drawHex(ctx, position, color, "");
     ctx.lineWidth = PIECE_BORDER_WIDTH;
     ctx.strokeStyle = VALID_MOVE_BORDER;
     ctx.stroke();
   }
 
-  private drawHex(
-    ctx: CanvasRenderingContext2D,
-    position: BoardPosition,
-    color: string,
-    imagePath: string
-  ) {
+  private drawHex(ctx: CanvasRenderingContext2D, position: BoardPosition, color: string, imagePath: string) {
     const { x, y } = position;
     const { height, width, pieceSize } = this.props;
     const { translatePosX, translatePosY, scale } = this.state;
@@ -375,8 +322,7 @@ class Board extends React.Component<IBoardProps, IBoardState> {
     const center_x = width / 2 + translatePosX;
     const center_y = height / 2 + translatePosY;
     const actual_x = center_x + x * sizeWithBuffer * 1.5;
-    const actual_y =
-      center_y + sizeWithBuffer * ((Math.sqrt(3) / 2) * x + Math.sqrt(3) * y);
+    const actual_y = center_y + sizeWithBuffer * ((Math.sqrt(3) / 2) * x + Math.sqrt(3) * y);
 
     ctx.beginPath();
     ctx.moveTo(actual_x + size * Math.cos(0), actual_y + size * Math.sin(0));
