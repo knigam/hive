@@ -1,4 +1,4 @@
-import { Methods } from "./.rtag/methods";
+import { Methods, Context, Result } from "./.rtag/methods";
 import {
   Color,
   GameStatus,
@@ -13,7 +13,6 @@ import {
   ISelectPieceRequest,
   PieceType,
   Move,
-  Result,
 } from "./.rtag/types";
 import { getPieceById, getBoardPosKey, boardPiecesAsList, isPieceSurrounded, IBoard } from "./helpers/board";
 import { getValidMoves, doesPlayerHaveValidMoves } from "./helpers/validation";
@@ -33,7 +32,7 @@ interface InternalState {
 }
 
 export class Impl implements Methods<InternalState> {
-  createGame(userData: UserData, _request: ICreateGameRequest): InternalState {
+  createGame(userData: UserData, _ctx: Context, _request: ICreateGameRequest): InternalState {
     return {
       creatorId: userData.id,
       creatorName: userData.name,
@@ -45,11 +44,11 @@ export class Impl implements Methods<InternalState> {
     };
   }
 
-  setupGame(state: InternalState, userData: UserData, request: ISetupGameRequest): Result {
+  setupGame(state: InternalState, userData: UserData, _ctx: Context, request: ISetupGameRequest): Result {
     if (gameStatus(state) !== GameStatus.NOT_STARTED) {
-      return Result.error("Game has already been started");
+      return Result.unmodified("Game has already been started");
     } else if (state.creatorId !== userData.id) {
-      return Result.error("Only creator can set up the game");
+      return Result.unmodified("Only creator can set up the game");
     }
     state.players = [userData.name];
     state.creatorColor = request.creatorColor;
@@ -72,32 +71,32 @@ export class Impl implements Methods<InternalState> {
         } as Piece)
     );
     state.unplayedPieces = whitePieces.concat(blackPieces);
-    return Result.success();
+    return Result.modified();
   }
 
-  playGame(state: InternalState, userData: UserData, _request: IPlayGameRequest): Result {
+  playGame(state: InternalState, userData: UserData, ctx: Context, _request: IPlayGameRequest): Result {
     const { creatorId, creatorName, creatorColor, players } = state;
     const { id, name } = userData;
     if (gameStatus(state) !== GameStatus.NOT_STARTED) {
-      return Result.error("Game has already been started");
+      return Result.unmodified("Game has already been started");
     } else if (creatorId === id) {
-      return Result.error("Waiting for another player to start playing the game");
+      return Result.unmodified("Waiting for another player to start playing the game");
     } else if (players.length === 0) {
-      return Result.error(`${creatorName} must set up the game before it can be started`);
+      return Result.unmodified(`${creatorName} must set up the game before it can be started`);
     }
 
     const numConflicts = players.filter((p) => p === name).length;
     state.players.push(`${name}${numConflicts > 0 ? `#${numConflicts + 1}` : ""}`);
 
-    state.color[creatorId] = creatorColor != undefined ? creatorColor : Math.random() < 0.5 ? Color.WHITE : Color.BLACK; // Assign whichever color was picked to creator or random if nothing was picked
+    state.color[creatorId] = creatorColor != undefined ? creatorColor : ctx.rand() < 0.5 ? Color.WHITE : Color.BLACK; // Assign whichever color was picked to creator or random if nothing was picked
     state.color[id] = state.color[creatorId] === Color.WHITE ? Color.BLACK : Color.WHITE; // Assign the unused color to the new player
     state.currentPlayerTurn = Color.WHITE; // White always goes first
-    return Result.success();
+    return Result.modified();
   }
 
-  selectPiece(state: InternalState, userData: UserData, request: ISelectPieceRequest): Result {
+  selectPiece(state: InternalState, userData: UserData, _ctx: Context, request: ISelectPieceRequest): Result {
     if (gameStatus(state) !== GameStatus.IN_PROGRESS) {
-      return Result.error("Game is not in progress");
+      return Result.unmodified("Game is not in progress");
     }
 
     const { color, currentPlayerTurn, unplayedPieces, board } = state;
@@ -107,16 +106,16 @@ export class Impl implements Methods<InternalState> {
     if (canSelectPiece(currentPlayerColor, currentPlayerTurn!, piece)) {
       state.selectedPiece = piece;
     } else if (currentPlayerColor !== currentPlayerTurn) {
-      return Result.error(`It is not your turn`);
+      return Result.unmodified(`It is not your turn`);
     } else if (piece && currentPlayerColor !== piece.color) {
-      return Result.error("You can only select new pieces that are your own color");
+      return Result.unmodified("You can only select new pieces that are your own color");
     }
-    return Result.success();
+    return Result.modified();
   }
 
-  movePiece(state: InternalState, userData: UserData, request: IMovePieceRequest): Result {
+  movePiece(state: InternalState, userData: UserData, _ctx: Context, request: IMovePieceRequest): Result {
     if (gameStatus(state) !== GameStatus.IN_PROGRESS) {
-      return Result.error("Game is not in progress");
+      return Result.unmodified("Game is not in progress");
     }
 
     const { pieceId, position: newPosition } = request;
@@ -127,16 +126,16 @@ export class Impl implements Methods<InternalState> {
     if (canSelectPiece(currentPlayerColor, currentPlayerTurn!, piece)) {
       state.selectedPiece = piece;
     } else if (currentPlayerColor !== currentPlayerTurn) {
-      return Result.error(`It is not your turn`);
+      return Result.unmodified(`It is not your turn`);
     } else if (currentPlayerColor !== piece.color) {
-      return Result.error("You can only move new pieces that are your own color");
+      return Result.unmodified("You can only move new pieces that are your own color");
     }
     if (
       !getValidMoves(piece, board, currentPlayerColor, currentPlayerTurn!, lastMove, tournament).find(
         (p) => p.x === newPosition.x && p.y === newPosition.y
       )
     ) {
-      return Result.error("This is not a valid move");
+      return Result.unmodified("This is not a valid move");
     }
 
     const oldPosition = piece.position;
@@ -170,7 +169,7 @@ export class Impl implements Methods<InternalState> {
     if (!doesPlayerHaveValidMoves(board, state.currentPlayerTurn, unplayedPieces, lastMove)) {
       state.currentPlayerTurn = state.currentPlayerTurn === Color.WHITE ? Color.BLACK : Color.WHITE;
     }
-    return Result.success();
+    return Result.modified();
   }
 
   getUserState(state: InternalState, userData: UserData): PlayerState {
