@@ -24,12 +24,12 @@ function Game(props: IGameProps) {
   const history = useHistory();
 
   useEffect(() => {
-    getRtag(path, history, setPlayerState)
-      .then(setRtag)
-      .catch((e) => {
+    if (rtag === undefined) {
+      initRtag(path, history, setRtag, setPlayerState).catch((e) => {
         console.error("Error connecting", e);
         setIs404(true);
       });
+    }
   }, [path]);
 
   if (playerState && rtag && !is404) {
@@ -58,11 +58,12 @@ function Game(props: IGameProps) {
   }
 }
 
-async function getRtag(
+async function initRtag(
   path: string,
   history: History,
+  setRtag: (client: RtagClient) => void,
   onStateChange: (state: PlayerState) => void
-): Promise<RtagClient> {
+): Promise<void> {
   const storedUserData = localStorage.getItem("user");
   const token: string = storedUserData
     ? JSON.parse(storedUserData).token
@@ -70,15 +71,25 @@ async function getRtag(
         localStorage.setItem("user", JSON.stringify({ token: t }));
         return t;
       });
-  const stateId: string =
-    path !== "/game"
-      ? path.replace("/game/", "")
-      : await RtagClient.createState(token, {}).then((sId) => {
-          history.replace(`/game/${sId}`);
-          return sId;
-        });
-
-  return RtagClient.connect(location.host, token, stateId, onStateChange);
+  if (path === "/game") {
+    const { stateId, client } = await RtagClient.connectNew(
+      import.meta.env.VITE_APP_ID as string,
+      token,
+      {},
+      onStateChange
+    );
+    setRtag(client);
+    history.replace(`/game/${stateId}`);
+  } else {
+    const stateId = path.split("/").pop()!;
+    const client = await RtagClient.connectExisting(
+      import.meta.env.VITE_APP_ID as string,
+      token,
+      stateId,
+      onStateChange
+    );
+    setRtag(client);
+  }
 }
 
 export default Game;

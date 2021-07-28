@@ -1,7 +1,7 @@
 import { isEqual } from "lodash-es";
 import React from "react";
 import { RtagClient } from "../../.rtag/client";
-import { Color, Piece, PieceType, PlayerName, Result } from "../../.rtag/types";
+import { Color, Piece, PieceType, PlayerName } from "../../.rtag/types";
 
 const DEFAULT_PIECES = [
   PieceType.QUEEN,
@@ -179,8 +179,8 @@ class Lobby extends React.Component<ILobbyProps, ILobbyState> {
         tournament,
       })
       .then((result) => {
-        if (result.type === "error") {
-          console.log(result.error);
+        if (result !== undefined) {
+          console.log(result);
         }
       });
   };
@@ -191,8 +191,8 @@ class Lobby extends React.Component<ILobbyProps, ILobbyState> {
 
   private playGame = () => {
     this.props.client.playGame({}).then((result) => {
-      if (result.type === "error") {
-        console.log(result.error);
+      if (result !== undefined) {
+        console.log(result);
       }
     });
   };

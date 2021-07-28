@@ -197,8 +197,8 @@ class Board extends React.Component<IBoardProps, IBoardState> {
           position: clickedPosition,
         })
         .then((result) => {
-          if (result.type === "error") {
-            console.log(result.error);
+          if (result !== undefined) {
+            console.log(result);
           }
         });
     } else {
@@ -211,15 +211,15 @@ class Board extends React.Component<IBoardProps, IBoardState> {
       if (pieceClicked) {
         // If the selected space is a piece on the board: select that piece
         client.selectPiece({ pieceId: pieceClicked.id }).then((result) => {
-          if (result.type === "error") {
-            console.log(result.error);
+          if (result !== undefined) {
+            console.log(result);
           }
         });
       } else {
         // Otherwise: select "undefined" to unselect any currently selected piece
         client.selectPiece({ pieceId: undefined }).then((result) => {
-          if (result.type === "error") {
-            console.log(result.error);
+          if (result !== undefined) {
+            console.log(result);
           }
         });
       }
