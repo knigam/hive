@@ -67,7 +67,7 @@ async function initRtag(
   const storedUserData = localStorage.getItem("user");
   const token: string = storedUserData
     ? JSON.parse(storedUserData).token
-    : await RtagClient.loginAnonymous().then((t) => {
+    : await RtagClient.loginAnonymous(import.meta.env.VITE_APP_ID as string).then((t) => {
         localStorage.setItem("user", JSON.stringify({ token: t }));
         return t;
       });
