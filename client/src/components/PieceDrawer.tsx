@@ -1,7 +1,7 @@
 // @ts-ignore
 import { startCase } from "lodash-es";
 import React from "react";
-import { RtagClient } from "../../.rtag/client";
+import { RtagConnection } from "../../.rtag/client";
 import { Color, GameStatus, Piece, PieceId } from "../../.rtag/types";
 import { getImagePath } from "../helpers/images";
 
@@ -12,7 +12,7 @@ interface IPieceDrawerProps {
   unplayedPieces: Piece[];
   selectedPiece: Piece | undefined;
   status: GameStatus;
-  client: RtagClient;
+  client: RtagConnection;
 }
 
 interface IPieceDrawerState {

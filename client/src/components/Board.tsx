@@ -1,6 +1,6 @@
 import React from "react";
 import { BoardPosition, Color, Move, Piece, PieceType } from "../../.rtag/types";
-import { RtagClient } from "../../.rtag/client";
+import { RtagConnection } from "../../.rtag/client";
 import { maxBy, startCase } from "lodash-es";
 import { axialToBoardPosition, cubeToAxial, cubeRound, axialToCube } from "../helpers/hex";
 import { getAllImagePaths, getImagePath } from "../helpers/images";
@@ -26,7 +26,7 @@ interface IBoardProps {
   validMoves: BoardPosition[];
   boardPieces: Piece[];
   lastMove: Move | undefined;
-  client: RtagClient;
+  client: RtagConnection;
 }
 
 interface IBoardState {

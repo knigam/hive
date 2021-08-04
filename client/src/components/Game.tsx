@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, useHistory } from "react-router-dom";
 import { History } from "history";
-import { RtagClient } from "../../.rtag/client";
+import { RtagClient, RtagConnection } from "../../.rtag/client";
 import { GameStatus, PlayerState } from "../../.rtag/types";
 import Board from "./Board";
 import PieceDrawer from "./PieceDrawer";
@@ -9,6 +9,8 @@ import Lobby from "./Lobby";
 
 const MIN_PIECE_DRAWER_HEIGHT = 100;
 const PIECE_SIZE = 75;
+
+const client = new RtagClient(import.meta.env.VITE_APP_ID as string);
 
 interface IGameProps {
   height: number;
@@ -18,7 +20,7 @@ interface IGameProps {
 function Game(props: IGameProps) {
   const { height, width } = props;
   const [playerState, setPlayerState] = useState<PlayerState | undefined>(undefined);
-  const [rtag, setRtag] = useState<RtagClient | undefined>(undefined);
+  const [rtag, setRtag] = useState<RtagConnection | undefined>(undefined);
   const [is404, setIs404] = useState<boolean>(false);
   const path = useLocation().pathname;
   const history = useHistory();
@@ -32,7 +34,7 @@ function Game(props: IGameProps) {
     }
   }, [path]);
 
-  if (playerState && rtag && !is404) {
+  if (playerState && rtag && !is404 && path !== "/game") {
     const boardHeight = Math.min(height * 0.8, height - MIN_PIECE_DRAWER_HEIGHT);
     const pieceDrawerHeight = height - boardHeight;
 
@@ -61,34 +63,24 @@ function Game(props: IGameProps) {
 async function initRtag(
   path: string,
   history: History,
-  setRtag: (client: RtagClient) => void,
+  setRtag: (client: RtagConnection) => void,
   onStateChange: (state: PlayerState) => void
 ): Promise<void> {
   const storedUserData = localStorage.getItem("user");
   const token: string = storedUserData
     ? JSON.parse(storedUserData).token
-    : await RtagClient.loginAnonymous(import.meta.env.VITE_APP_ID as string).then((t) => {
+    : await client.loginAnonymous().then((t) => {
         localStorage.setItem("user", JSON.stringify({ token: t }));
         return t;
       });
   if (path === "/game") {
-    const { stateId, client } = await RtagClient.connectNew(
-      import.meta.env.VITE_APP_ID as string,
-      token,
-      {},
-      onStateChange
-    );
-    setRtag(client);
-    history.replace(`/game/${stateId}`);
+    const connection = await client.connectNew(token, {}, onStateChange);
+    setRtag(connection);
+    history.replace(`/game/${connection.stateId}`);
   } else {
     const stateId = path.split("/").pop()!;
-    const client = await RtagClient.connectExisting(
-      import.meta.env.VITE_APP_ID as string,
-      token,
-      stateId,
-      onStateChange
-    );
-    setRtag(client);
+    const connection = await client.connectExisting(token, stateId, onStateChange);
+    setRtag(connection);
   }
 }
 

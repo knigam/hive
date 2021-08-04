@@ -1,6 +1,6 @@
 import { isEqual } from "lodash-es";
 import React from "react";
-import { RtagClient } from "../../.rtag/client";
+import { RtagConnection } from "../../.rtag/client";
 import { Color, Piece, PieceType, PlayerName } from "../../.rtag/types";
 
 const DEFAULT_PIECES = [
@@ -23,7 +23,7 @@ interface ILobbyProps {
   tournament: boolean;
   unplayedPieces: Piece[];
   players: PlayerName[];
-  client: RtagClient;
+  client: RtagConnection;
 }
 
 interface ILobbyState {
