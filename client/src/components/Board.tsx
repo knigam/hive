@@ -89,8 +89,10 @@ class Board extends React.Component<IBoardProps, IBoardState> {
             boardPieces
               .filter((p) => p.position!.x == selectedPiece.position!.x && p.position!.y == selectedPiece.position!.y)
               .sort((a, b) => b.stack! - a.stack!)
-              .map((p) => (
-                <ul>{`${startCase(Color[p.color].toLowerCase())} - ${startCase(PieceType[p.type].toLowerCase())}`}</ul>
+              .map((p, idx) => (
+                <ul key={`overlay-stack-pc-${idx}`}>{`${startCase(Color[p.color].toLowerCase())} - ${startCase(
+                  PieceType[p.type].toLowerCase()
+                )}`}</ul>
               ))}
         </div>
       </div>
