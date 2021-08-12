@@ -1,5 +1,5 @@
 // @ts-ignore
-import { startCase } from "lodash-es";
+import { first, startCase } from "lodash-es";
 import React from "react";
 import { RtagConnection } from "../../.rtag/client";
 import { Color, GameStatus, Piece, PieceId } from "../../.rtag/types";
@@ -19,31 +19,29 @@ interface IPieceDrawerState {
   currentColor: Color;
 }
 
-class PieceDrawer extends React.Component<
-  IPieceDrawerProps,
-  IPieceDrawerState
-> {
-  state = { currentColor: this.props.color };
+class PieceDrawer extends React.Component<IPieceDrawerProps, IPieceDrawerState> {
+  firstColor = this.props.color || Color.WHITE;
+  state = { currentColor: this.firstColor };
 
   render() {
     const { color, height, selectedPiece, unplayedPieces } = this.props;
-    const otherColor = Color.WHITE === color ? Color.BLACK : Color.WHITE;
+    const otherColor = Color.WHITE === this.firstColor ? Color.BLACK : Color.WHITE;
     const { currentColor } = this.state;
 
     return (
       <div className="PieceDrawer" style={{ height: `${height}px` }}>
         <div className="tabs">
           <button
-            className={`tablink${currentColor === color ? " active" : ""}`}
-            onClick={() => this.selectDrawerColor(color)}
+            className={`tablink${currentColor === this.firstColor ? " active" : ""}`}
+            onClick={() => this.selectDrawerColor(this.firstColor)}
           >
-            Your Pieces
+            {`${color === undefined ? "White" : "Your"} Pieces`}
           </button>
           <button
             className={`tablink${currentColor === otherColor ? " active" : ""}`}
             onClick={() => this.selectDrawerColor(otherColor)}
           >
-            Opponent's Pieces
+            {`${color === undefined ? "Black" : "Opponent's"} Pieces`}
           </button>
           <div className="status">{this.getStatusText()}</div>
         </div>
@@ -79,6 +77,8 @@ class PieceDrawer extends React.Component<
     const { currentPlayerTurn, color, status } = this.props;
     if (status !== GameStatus.IN_PROGRESS) {
       return startCase(GameStatus[status].toLowerCase());
+    } else if (color === undefined) {
+      return `${startCase(Color[currentPlayerTurn].toLowerCase())}'s Turn`;
     } else {
       return `${currentPlayerTurn === color ? "Your" : "Opponent's"} Turn`;
     }
