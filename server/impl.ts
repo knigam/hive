@@ -166,7 +166,7 @@ export class Impl implements Methods<InternalState> {
     // Make sure to reset selected piece and cycle current player. If the new currentPlayer has no valid moves, cycle again. If no one has valid moves, the game is a draw.
     state.selectedPiece = undefined;
     state.currentPlayerTurn = state.currentPlayerTurn === Color.WHITE ? Color.BLACK : Color.WHITE;
-    if (!doesPlayerHaveValidMoves(board, state.currentPlayerTurn, unplayedPieces, lastMove)) {
+    if (!doesPlayerHaveValidMoves(board, state.currentPlayerTurn, state.unplayedPieces, state.lastMove)) {
       state.currentPlayerTurn = state.currentPlayerTurn === Color.WHITE ? Color.BLACK : Color.WHITE;
     }
     return Result.modified();
