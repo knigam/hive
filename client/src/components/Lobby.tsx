@@ -179,8 +179,8 @@ class Lobby extends React.Component<ILobbyProps, ILobbyState> {
         tournament,
       })
       .then((result) => {
-        if (result !== undefined) {
-          console.log(result);
+        if (result.type === "error") {
+          console.error(result.error);
         }
       });
   };
@@ -191,8 +191,8 @@ class Lobby extends React.Component<ILobbyProps, ILobbyState> {
 
   private playGame = () => {
     this.props.client.playGame({}).then((result) => {
-      if (result !== undefined) {
-        console.log(result);
+      if (result.type === "error") {
+        console.error(result.error);
       }
     });
   };

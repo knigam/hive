@@ -70,7 +70,11 @@ class PieceDrawer extends React.Component<IPieceDrawerProps, IPieceDrawerState> 
   }
 
   private unplayedPieceClicked(id: PieceId) {
-    this.props.client.selectPiece({ pieceId: id }, (e) => console.log(e));
+    this.props.client.selectPiece({ pieceId: id }).then((result) => {
+      if (result.type === "error") {
+        console.error(result.error);
+      }
+    });
   }
 
   private getStatusText(): string {
