@@ -1,7 +1,6 @@
 import { Methods, Context } from "./.rtag/methods";
+import { UserData, Response } from "./.rtag/base";
 import {
-  UserData,
-  Response,
   Color,
   GameStatus,
   Piece,
@@ -87,7 +86,7 @@ export class Impl implements Methods<InternalState> {
     }
 
     const numConflicts = players.filter((p) => p === name).length;
-    state.players.push(`${name}${numConflicts > 0 ? `#${numConflicts + 1}` : ""}`);
+    state.players.push(`${name}${numConflicts > 0 ? numConflicts + 1 : ""}`);
 
     state.color[creatorId] = creatorColor != undefined ? creatorColor : ctx.rand() < 0.5 ? Color.WHITE : Color.BLACK; // Assign whichever color was picked to creator or random if nothing was picked
     state.color[id] = state.color[creatorId] === Color.WHITE ? Color.BLACK : Color.WHITE; // Assign the unused color to the new player
@@ -100,14 +99,14 @@ export class Impl implements Methods<InternalState> {
       return Response.error("Game is not in progress");
     }
 
-    const { color, currentPlayerTurn, unplayedPieces, board } = state;
+    const { currentPlayerTurn, unplayedPieces, board } = state;
     const currentPlayerColor = getCurrentPlayerColor(state, userData);
     const piece = request.pieceId === undefined ? undefined : getPieceById(request.pieceId, unplayedPieces, board);
 
     if (canSelectPiece(currentPlayerColor, currentPlayerTurn!, piece)) {
       state.selectedPiece = piece;
     } else if (currentPlayerColor !== currentPlayerTurn) {
-      return Response.error(`It is not your turn`);
+      return Response.error("It is not your turn");
     } else if (piece && currentPlayerColor !== piece.color) {
       return Response.error("You can only select new pieces that are your own color");
     }
@@ -127,7 +126,7 @@ export class Impl implements Methods<InternalState> {
     if (canSelectPiece(currentPlayerColor, currentPlayerTurn!, piece)) {
       state.selectedPiece = piece;
     } else if (currentPlayerColor !== currentPlayerTurn) {
-      return Response.error(`It is not your turn`);
+      return Response.error("It is not your turn");
     } else if (currentPlayerColor !== piece.color) {
       return Response.error("You can only move new pieces that are your own color");
     }
@@ -176,7 +175,6 @@ export class Impl implements Methods<InternalState> {
   getUserState(state: InternalState, userData: UserData): PlayerState {
     const {
       creatorId,
-      creatorName: creator,
       creatorColor,
       tournament,
       color,
