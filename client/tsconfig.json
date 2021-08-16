@@ -5,10 +5,7 @@
     "strict": true,
     "jsx": "react",
     "target": "esnext",
-    "moduleResolution": "node",
-    "types": ["vite/client"]
+    "moduleResolution": "node"
   },
-  "include": [
-    "src",
-  ]
+  "include": ["src"]
 }

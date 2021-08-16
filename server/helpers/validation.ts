@@ -1,4 +1,4 @@
-import { first, uniq, uniqBy } from "lodash-es";
+import { uniq, uniqBy } from "lodash-es";
 import { Piece, BoardPosition, Color, PieceType, Move } from "../.rtag/types";
 import {
   boardPiecesAsList,
