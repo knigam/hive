@@ -1,4 +1,4 @@
-import { Color, PieceType } from "../../.rtag/types";
+import { Color, PieceType } from "../game/types";
 import ant_black from "../images/Ant-Black.svg";
 import ant_mint from "../images/Ant-Mint.svg";
 import beetle_black from "../images/Beetle-Black.svg";

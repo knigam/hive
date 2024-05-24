@@ -1,5 +1,5 @@
 import { first, uniq, uniqBy } from "lodash-es";
-import { Piece, BoardPosition, Color, PieceType, Move } from "../.rtag/types";
+import { Piece, BoardPosition, Color, PieceType, Move } from "./types";
 import {
   boardPiecesAsList,
   getSurroundingPositions,
@@ -23,7 +23,17 @@ export function doesPlayerHaveValidMoves(
 ): boolean {
   return unplayedPieces
     .concat(boardPiecesAsList(board))
-    .find((p) => getValidMoves(p, board, currentPlayerColor, currentPlayerColor, lastMove, false).length > 0) // tournament rules don't matter here since they only apply to first move, when there are always other valid moves
+    .find(
+      (p) =>
+        getValidMoves(
+          p,
+          board,
+          currentPlayerColor,
+          currentPlayerColor,
+          lastMove,
+          false
+        ).length > 0
+    ) // tournament rules don't matter here since they only apply to first move, when there are always other valid moves
     ? true
     : false;
 }
@@ -42,7 +52,9 @@ export function getValidMoves(
   }
 
   const piecesAsList = boardPiecesAsList(board);
-  const friendlyPiecesAsList = piecesAsList.filter((p) => p.color === currentPlayerColor);
+  const friendlyPiecesAsList = piecesAsList.filter(
+    (p) => p.color === currentPlayerColor
+  );
   // 1. if no pieces have been played there is only one valid move for all pieces (except queen if playing tournament rules)
   if (piecesAsList.length === 0) {
     if (tournament && piece.type === PieceType.QUEEN) {
@@ -59,19 +71,28 @@ export function getValidMoves(
     return getSurroundingPositions(piecesAsList.map((p) => p.position!));
   }
 
-  const hasQueenBeenPlayed = friendlyPiecesAsList.find((p) => p.type === PieceType.QUEEN);
+  const hasQueenBeenPlayed = friendlyPiecesAsList.find(
+    (p) => p.type === PieceType.QUEEN
+  );
   // 3. if the queen has not been played, pieces on the board have no valid moves
   if (!hasQueenBeenPlayed && piece.position) {
     return [];
   }
 
   // 4. if three pieces have been played and none of them are queen, all pieces other than queen have no moves
-  if (friendlyPiecesAsList.length === 3 && !hasQueenBeenPlayed && piece.type !== PieceType.QUEEN) {
+  if (
+    friendlyPiecesAsList.length === 3 &&
+    !hasQueenBeenPlayed &&
+    piece.type !== PieceType.QUEEN
+  ) {
     return [];
   }
 
   // 5. a piece that has another piece on top of it has no valid moves
-  if (piece.position && getTopPieceAtPos(piece.position!, board)!.id !== piece.id) {
+  if (
+    piece.position &&
+    getTopPieceAtPos(piece.position!, board)?.id !== piece.id
+  ) {
     return [];
   }
 
@@ -96,7 +117,9 @@ export function getValidMoves(
         .filter(
           (pos) =>
             !getTopPieceAtPos(pos, board) &&
-            getSurroundingPieces(pos, board).filter((neighbor) => neighbor.color !== currentPlayerColor).length === 0
+            getSurroundingPieces(pos, board).filter(
+              (neighbor) => neighbor.color !== currentPlayerColor
+            ).length === 0
         ),
       getBoardPosKey
     );
@@ -154,27 +177,39 @@ export function getValidMoves(
             (p.type === PieceType.PILLBUG ||
               (p.type === PieceType.MOSQUITO &&
                 p.stack === 0 &&
-                getSurroundingPieces(p.position!, board).find((n) => n.type === PieceType.PILLBUG))) &&
+                getSurroundingPieces(p.position!, board).find(
+                  (n) => n.type === PieceType.PILLBUG
+                ))) &&
             getFreelyClimbablePieces(piece, board).find(
-              (n) => p.position!.x === n.position!.x && p.position!.y === n.position!.y
+              (n) =>
+                p.position!.x === n.position!.x &&
+                p.position!.y === n.position!.y
             )
         );
   const validMovesFromPillbug = neighboringPillbugs.flatMap((p) =>
     getFreelyDroppableSpaces({ ...p, stack: p.stack! + 1 }, board)
   );
 
-  return uniqBy(validMovesForPiece.concat(validMovesFromPillbug), getBoardPosKey);
+  return uniqBy(
+    validMovesForPiece.concat(validMovesFromPillbug),
+    getBoardPosKey
+  );
 }
 
 export function validatePieceType(expected: PieceType[], found: PieceType) {
   if (!expected.some((i) => i === found)) {
     throw new Error(
-      `Expected piece of type [${expected.map((i) => PieceType[i]).join(", ")}] but found ${PieceType[found]}`
+      `Expected piece of type [${expected
+        .map((i) => PieceType[i])
+        .join(", ")}] but found ${PieceType[found]}`
     );
   }
 }
 
-export function validMovesForQueen(piece: Piece, board: IBoard): BoardPosition[] {
+export function validMovesForQueen(
+  piece: Piece,
+  board: IBoard
+): BoardPosition[] {
   validatePieceType([PieceType.QUEEN, PieceType.MOSQUITO], piece.type);
   return validNFreelyMoveableSpaces(piece, board, 1);
 }
@@ -184,30 +219,45 @@ export function validMovesForAnt(piece: Piece, board: IBoard): BoardPosition[] {
   return validNFreelyMoveableSpaces(piece, board);
 }
 
-export function validMovesForSpider(piece: Piece, board: IBoard): BoardPosition[] {
+export function validMovesForSpider(
+  piece: Piece,
+  board: IBoard
+): BoardPosition[] {
   validatePieceType([PieceType.SPIDER, PieceType.MOSQUITO], piece.type);
   return validNFreelyMoveableSpaces(piece, board, 3);
 }
 
-export function validMovesForBeetle(piece: Piece, board: IBoard): BoardPosition[] {
+export function validMovesForBeetle(
+  piece: Piece,
+  board: IBoard
+): BoardPosition[] {
   validatePieceType([PieceType.BEETLE, PieceType.MOSQUITO], piece.type);
   const { position, stack } = piece;
   if (!position || stack == undefined) {
     return [];
   }
 
-  const climbablePiecePositions = getFreelyClimbablePieces(piece, board).map((p) => p.position!); // all pieces the beetle can move onto
+  const climbablePiecePositions = getFreelyClimbablePieces(piece, board).map(
+    (p) => p.position!
+  ); // all pieces the beetle can move onto
 
   // If the beetle is already on a stack, it can climb to another piece or drop down to an empty space
   if (stack > 0) {
-    return climbablePiecePositions.concat(getFreelyDroppableSpaces(piece, board));
+    return climbablePiecePositions.concat(
+      getFreelyDroppableSpaces(piece, board)
+    );
   }
 
   // Otherwise, if it's already on the ground, it can go to any free neighboring space or climb onto a piece
-  return climbablePiecePositions.concat(validNFreelyMoveableSpaces(piece, board, 1));
+  return climbablePiecePositions.concat(
+    validNFreelyMoveableSpaces(piece, board, 1)
+  );
 }
 
-export function validMovesForGrasshopper(piece: Piece, board: IBoard): BoardPosition[] {
+export function validMovesForGrasshopper(
+  piece: Piece,
+  board: IBoard
+): BoardPosition[] {
   validatePieceType([PieceType.GRASSHOPPER, PieceType.MOSQUITO], piece.type);
   const { position } = piece;
   if (!position) {
@@ -230,7 +280,10 @@ export function validMovesForGrasshopper(piece: Piece, board: IBoard): BoardPosi
   });
 }
 
-export function validMovesForLadybug(piece: Piece, board: IBoard): BoardPosition[] {
+export function validMovesForLadybug(
+  piece: Piece,
+  board: IBoard
+): BoardPosition[] {
   validatePieceType([PieceType.LADYBUG, PieceType.MOSQUITO], piece.type);
   const { position, stack } = piece;
   if (!position || stack === undefined) {
@@ -246,7 +299,10 @@ export function validMovesForLadybug(piece: Piece, board: IBoard): BoardPosition
         position: p.position,
         stack: p.stack! + 1,
       };
-      return getFreelyClimbablePieces(simulatedLadybug, getBoardWithoutPiece(piece, board)); // use board without original piece here so it doesn't try to climb over itself
+      return getFreelyClimbablePieces(
+        simulatedLadybug,
+        getBoardWithoutPiece(piece, board)
+      ); // use board without original piece here so it doesn't try to climb over itself
     }),
     (p) => getBoardPosKey(p.position!)
   );
@@ -263,7 +319,10 @@ export function validMovesForLadybug(piece: Piece, board: IBoard): BoardPosition
   return uniqBy(droppableSpaces, getBoardPosKey);
 }
 
-export function validMovesForMosquito(piece: Piece, board: IBoard): BoardPosition[] {
+export function validMovesForMosquito(
+  piece: Piece,
+  board: IBoard
+): BoardPosition[] {
   validatePieceType([PieceType.MOSQUITO], piece.type);
   const { position, stack } = piece;
 
@@ -273,7 +332,9 @@ export function validMovesForMosquito(piece: Piece, board: IBoard): BoardPositio
   }
 
   // otherwise, get the valid moves for the piece as if it was any of the surrounding piece types
-  const uniqueSurroundingTypes = uniq(getSurroundingPieces(piece.position!, board).map((p) => p.type));
+  const uniqueSurroundingTypes = uniq(
+    getSurroundingPieces(piece.position!, board).map((p) => p.type)
+  );
   return uniqBy(
     uniqueSurroundingTypes.flatMap((type) => {
       switch (type) {
@@ -299,7 +360,10 @@ export function validMovesForMosquito(piece: Piece, board: IBoard): BoardPositio
   );
 }
 
-export function validMovesForPillbug(piece: Piece, board: IBoard): BoardPosition[] {
+export function validMovesForPillbug(
+  piece: Piece,
+  board: IBoard
+): BoardPosition[] {
   validatePieceType([PieceType.PILLBUG, PieceType.MOSQUITO], piece.type);
   return validNFreelyMoveableSpaces(piece, board, 1);
 }
@@ -311,7 +375,11 @@ pop and repeat n times
 when you hit n, take result and add it to results list and clear visited
 for ant, you can make n really high and keep going until everything in stack is visited, then return visited list
 */
-export function validNFreelyMoveableSpaces(piece: Piece, board: IBoard, n?: number): BoardPosition[] {
+export function validNFreelyMoveableSpaces(
+  piece: Piece,
+  board: IBoard,
+  n?: number
+): BoardPosition[] {
   const { position } = piece;
   if (!position) {
     return [];
@@ -335,7 +403,9 @@ export function validNFreelyMoveableSpaces(piece: Piece, board: IBoard, n?: numb
       continue;
     }
     visited.add(key);
-    const newSpaces = getFreelyMovableSpaces(pos, boardWithoutPiece).filter((s) => !visited.has(getBoardPosKey(s)));
+    const newSpaces = getFreelyMovableSpaces(pos, boardWithoutPiece).filter(
+      (s) => !visited.has(getBoardPosKey(s))
+    );
     if (n === undefined && newSpaces.length === 0) {
       results = [...visited].map(getBoardPositionFromKey);
       break;
@@ -347,5 +417,7 @@ export function validNFreelyMoveableSpaces(piece: Piece, board: IBoard, n?: numb
   }
 
   // distinct results before returning and filter out current location of piece since piece can't move to same position
-  return uniqBy(results, getBoardPosKey).filter((pos) => !(pos.x === position.x && pos.y === position.y));
+  return uniqBy(results, getBoardPosKey).filter(
+    (pos) => !(pos.x === position.x && pos.y === position.y)
+  );
 }
