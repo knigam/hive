@@ -1,4 +1,4 @@
-import { BoardPosition } from "../../.rtag/types";
+import { BoardPosition } from "../game/types";
 
 export interface ICubeHex {
   x: number;

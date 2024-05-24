@@ -1,5 +1,5 @@
 import { compact, over } from 'lodash-es'
-import { PieceId, Piece, BoardPosition } from '../.rtag/types'
+import { PieceId, Piece, BoardPosition } from './types'
 
 export const NUM_SIDES_OF_PIECE = 6
 

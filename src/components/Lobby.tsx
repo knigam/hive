@@ -1,8 +1,9 @@
 import { isEqual } from "lodash-es";
 import React from "react";
-import { RtagConnection } from "../../.rtag/client";
-import { Color, Piece, PieceType, PlayerName } from "../../.rtag/types";
+import { Impl, InternalState } from "../game/impl";
+import { Color, Piece, PieceType, PlayerName, UserData } from "../game/types";
 
+const impl = new Impl();
 const DEFAULT_PIECES = [
   PieceType.QUEEN,
   PieceType.ANT,
@@ -23,7 +24,8 @@ interface ILobbyProps {
   tournament: boolean;
   unplayedPieces: Piece[];
   players: PlayerName[];
-  client: RtagConnection;
+  gameState: InternalState;
+  userState: UserData;
 }
 
 interface ILobbyState {
@@ -47,13 +49,26 @@ class Lobby extends React.Component<ILobbyProps, ILobbyState> {
 
   render() {
     const { isCreator, players } = this.props;
-    const { edited, tournament, isLadybugSelected, isMosquitoSelected, isPillbugSelected, creatorColor } = this.state;
+    const {
+      edited,
+      tournament,
+      isLadybugSelected,
+      isMosquitoSelected,
+      isPillbugSelected,
+      creatorColor,
+    } = this.state;
 
     return (
       <div className="Lobby">
         <h3>Game Code: {this.getSessionCode()}</h3>
         <span>
-          <input className="hive-input-btn-input" type="url" value={this.url} id="urlText" readOnly />
+          <input
+            className="hive-input-btn-input"
+            type="url"
+            value={this.url}
+            id="urlText"
+            readOnly
+          />
           <button className="hive-btn hive-input-btn" onClick={this.copyUrl}>
             Copy
           </button>
@@ -76,7 +91,9 @@ class Lobby extends React.Component<ILobbyProps, ILobbyState> {
             Game creator color
             <select
               disabled={!isCreator}
-              value={creatorColor === undefined ? "undefined" : Color[creatorColor]}
+              value={
+                creatorColor === undefined ? "undefined" : Color[creatorColor]
+              }
               onChange={this.creatorColorChanged}
             >
               <option value="undefined">Random</option>
@@ -102,7 +119,9 @@ class Lobby extends React.Component<ILobbyProps, ILobbyState> {
               type="checkbox"
               id="ladybugCheckbox"
               checked={isLadybugSelected}
-              onChange={(event) => this.checkboxChanged(event, "isLadybugSelected")}
+              onChange={(event) =>
+                this.checkboxChanged(event, "isLadybugSelected")
+              }
             />
             Ladybug
           </label>
@@ -113,7 +132,9 @@ class Lobby extends React.Component<ILobbyProps, ILobbyState> {
               type="checkbox"
               id="mosquitoCheckbox"
               checked={isMosquitoSelected}
-              onChange={(event) => this.checkboxChanged(event, "isMosquitoSelected")}
+              onChange={(event) =>
+                this.checkboxChanged(event, "isMosquitoSelected")
+              }
             />
             Mosquito
           </label>
@@ -124,14 +145,20 @@ class Lobby extends React.Component<ILobbyProps, ILobbyState> {
               type="checkbox"
               id="pillbugCheckbox"
               checked={isPillbugSelected}
-              onChange={(event) => this.checkboxChanged(event, "isPillbugSelected")}
+              onChange={(event) =>
+                this.checkboxChanged(event, "isPillbugSelected")
+              }
             />
             Pillbug
           </label>
         </div>
         <br />
         {isCreator && (
-          <button className="hive-btn" onClick={this.saveSettings} disabled={players.length !== 0 && !edited}>
+          <button
+            className="hive-btn"
+            onClick={this.saveSettings}
+            disabled={players.length !== 0 && !edited}
+          >
             Save
           </button>
         )}
@@ -141,7 +168,11 @@ class Lobby extends React.Component<ILobbyProps, ILobbyState> {
           </button>
         )}
         {!isCreator && (
-          <button className="hive-btn" onClick={this.playGame} disabled={players.length === 0}>
+          <button
+            className="hive-btn"
+            onClick={this.playGame}
+            disabled={players.length === 0}
+          >
             Play!
           </button>
         )}
@@ -161,18 +192,30 @@ class Lobby extends React.Component<ILobbyProps, ILobbyState> {
   }
 
   private saveSettings = () => {
-    const { client } = this.props;
-    const { creatorColor, tournament, isLadybugSelected, isMosquitoSelected, isPillbugSelected } = this.state;
+    const { gameState, userState } = this.props;
+    const {
+      creatorColor,
+      tournament,
+      isLadybugSelected,
+      isMosquitoSelected,
+      isPillbugSelected,
+    } = this.state;
     const pieces = [...DEFAULT_PIECES];
-    const extraPieces = [PieceType.LADYBUG, PieceType.MOSQUITO, PieceType.PILLBUG];
-    [isLadybugSelected, isMosquitoSelected, isPillbugSelected].forEach((i, idx) => {
-      if (i) {
-        pieces.push(extraPieces[idx]);
+    const extraPieces = [
+      PieceType.LADYBUG,
+      PieceType.MOSQUITO,
+      PieceType.PILLBUG,
+    ];
+    [isLadybugSelected, isMosquitoSelected, isPillbugSelected].forEach(
+      (i, idx) => {
+        if (i) {
+          pieces.push(extraPieces[idx]);
+        }
       }
-    });
+    );
 
-    client
-      .setupGame({
+    impl
+      .setupGame(gameState, userState, {
         blackPieces: pieces,
         whitePieces: pieces,
         creatorColor,
@@ -190,22 +233,34 @@ class Lobby extends React.Component<ILobbyProps, ILobbyState> {
   };
 
   private playGame = () => {
-    this.props.client.playGame({}).then((result) => {
+    const { gameState, userState } = this.props;
+    impl.playGame(gameState, userState).then((result) => {
       if (result.type === "error") {
         console.error(result.error);
       }
     });
   };
 
-  private creatorColorChanged = (event: React.ChangeEvent<HTMLSelectElement>) => {
+  private creatorColorChanged = (
+    event: React.ChangeEvent<HTMLSelectElement>
+  ) => {
     const val = event.target.value;
-    const color = val === Color[Color.WHITE] ? Color.WHITE : val === Color[Color.BLACK] ? Color.BLACK : undefined;
+    const color =
+      val === Color[Color.WHITE]
+        ? Color.WHITE
+        : val === Color[Color.BLACK]
+        ? Color.BLACK
+        : undefined;
     this.setState({ creatorColor: color, edited: true });
   };
 
   private checkboxChanged(
     event: React.ChangeEvent<HTMLInputElement>,
-    key: "tournament" | "isLadybugSelected" | "isMosquitoSelected" | "isPillbugSelected"
+    key:
+      | "tournament"
+      | "isLadybugSelected"
+      | "isMosquitoSelected"
+      | "isPillbugSelected"
   ) {
     if (key === "tournament") {
       this.setState({ [key]: event.target.checked, edited: true });

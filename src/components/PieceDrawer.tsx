@@ -1,9 +1,11 @@
 // @ts-ignore
-import { first, startCase } from "lodash-es";
+import { startCase } from "lodash-es";
 import React from "react";
-import { RtagConnection } from "../../.rtag/client";
-import { Color, GameStatus, Piece, PieceId } from "../../.rtag/types";
+import { Color, GameStatus, Piece, PieceId, UserData } from "../game/types";
+import { Impl, InternalState } from "../game/impl";
 import { getImagePath } from "../helpers/images";
+
+const impl = new Impl();
 
 interface IPieceDrawerProps {
   color: Color;
@@ -12,27 +14,34 @@ interface IPieceDrawerProps {
   unplayedPieces: Piece[];
   selectedPiece: Piece | undefined;
   status: GameStatus;
-  client: RtagConnection;
+  gameState: InternalState;
+  userState: UserData;
 }
 
 interface IPieceDrawerState {
   currentColor: Color;
 }
 
-class PieceDrawer extends React.Component<IPieceDrawerProps, IPieceDrawerState> {
+class PieceDrawer extends React.Component<
+  IPieceDrawerProps,
+  IPieceDrawerState
+> {
   firstColor = this.props.color || Color.WHITE;
   state = { currentColor: this.firstColor };
 
   render() {
     const { color, height, selectedPiece, unplayedPieces } = this.props;
-    const otherColor = Color.WHITE === this.firstColor ? Color.BLACK : Color.WHITE;
+    const otherColor =
+      Color.WHITE === this.firstColor ? Color.BLACK : Color.WHITE;
     const { currentColor } = this.state;
 
     return (
       <div className="PieceDrawer" style={{ height: `${height}px` }}>
         <div className="tabs">
           <button
-            className={`tablink${currentColor === this.firstColor ? " active" : ""}`}
+            className={`tablink${
+              currentColor === this.firstColor ? " active" : ""
+            }`}
             onClick={() => this.selectDrawerColor(this.firstColor)}
           >
             {`${color === undefined ? "White" : "Your"} Pieces`}
@@ -70,11 +79,8 @@ class PieceDrawer extends React.Component<IPieceDrawerProps, IPieceDrawerState> 
   }
 
   private unplayedPieceClicked(id: PieceId) {
-    this.props.client.selectPiece({ pieceId: id }).then((result) => {
-      if (result.type === "error") {
-        console.error(result.error);
-      }
-    });
+    const { gameState, userState } = this.props;
+    impl.selectPiece(gameState, userState, { pieceId: id });
   }
 
   private getStatusText(): string {

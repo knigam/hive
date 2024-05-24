@@ -1,23 +1,32 @@
-import { Methods, Context } from "./.rtag/methods";
-import { UserData, Response } from "./.rtag/base";
+import { Methods, Response } from "./methods";
 import {
   Color,
   GameStatus,
   Piece,
   PlayerName,
   PlayerState,
-  ICreateGameRequest,
   ISetupGameRequest,
-  IPlayGameRequest,
   IMovePieceRequest,
   ISelectPieceRequest,
   PieceType,
   Move,
-} from "./.rtag/types";
-import { getPieceById, getBoardPosKey, boardPiecesAsList, isPieceSurrounded, IBoard } from "./helpers/board";
-import { getValidMoves, doesPlayerHaveValidMoves } from "./helpers/validation";
+  UserData,
+} from "./types";
+import {
+  getPieceById,
+  getBoardPosKey,
+  boardPiecesAsList,
+  isPieceSurrounded,
+  IBoard,
+} from "./board";
+import { getValidMoves, doesPlayerHaveValidMoves } from "./validation";
+import { collection, doc, setDoc } from "firebase/firestore";
+import { db } from "../services/firebase";
 
-type InternalState = {
+const gamesRef = collection(db, "games");
+
+export type InternalState = {
+  gameId: string;
   creatorId: string;
   creatorName: PlayerName;
   creatorColor?: Color;
@@ -32,8 +41,9 @@ type InternalState = {
 };
 
 export class Impl implements Methods<InternalState> {
-  createGame(userData: UserData, _ctx: Context, _request: ICreateGameRequest): InternalState {
-    return {
+  async createGame(gameId: string, userData: UserData): Promise<Response> {
+    const gameState = {
+      gameId: gameId,
       creatorId: userData.id,
       creatorName: userData.name,
       players: [],
@@ -42,9 +52,14 @@ export class Impl implements Methods<InternalState> {
       board: {},
       tournament: false,
     };
+    return saveToFirebase(gameState);
   }
 
-  setupGame(state: InternalState, userData: UserData, _ctx: Context, request: ISetupGameRequest): Response {
+  async setupGame(
+    state: InternalState,
+    userData: UserData,
+    request: ISetupGameRequest
+  ): Promise<Response> {
     if (gameStatus(state) !== GameStatus.NOT_STARTED) {
       return Response.error("Game has already been started");
     } else if (state.creatorId !== userData.id) {
@@ -71,55 +86,79 @@ export class Impl implements Methods<InternalState> {
         } as Piece)
     );
     state.unplayedPieces = whitePieces.concat(blackPieces);
-    return Response.ok();
+    return saveToFirebase(state);
   }
 
-  playGame(state: InternalState, userData: UserData, ctx: Context, _request: IPlayGameRequest): Response {
+  async playGame(state: InternalState, userData: UserData): Promise<Response> {
     const { creatorId, creatorName, creatorColor, players } = state;
     const { id, name } = userData;
     if (gameStatus(state) !== GameStatus.NOT_STARTED) {
       return Response.error("Game has already been started");
     } else if (creatorId === id) {
-      return Response.error("Waiting for another player to start playing the game");
+      return Response.error(
+        "Waiting for another player to start playing the game"
+      );
     } else if (players.length === 0) {
-      return Response.error(`${creatorName} must set up the game before it can be started`);
+      return Response.error(
+        `${creatorName} must set up the game before it can be started`
+      );
     }
 
     const numConflicts = players.filter((p) => p === name).length;
     state.players.push(`${name}${numConflicts > 0 ? numConflicts + 1 : ""}`);
 
-    state.color[creatorId] = creatorColor != undefined ? creatorColor : ctx.rand() < 0.5 ? Color.WHITE : Color.BLACK; // Assign whichever color was picked to creator or random if nothing was picked
-    state.color[id] = state.color[creatorId] === Color.WHITE ? Color.BLACK : Color.WHITE; // Assign the unused color to the new player
+    state.color[creatorId] =
+      creatorColor != undefined
+        ? creatorColor
+        : Math.random() < 0.5
+        ? Color.WHITE
+        : Color.BLACK; // Assign whichever color was picked to creator or random if nothing was picked
+    state.color[id] =
+      state.color[creatorId] === Color.WHITE ? Color.BLACK : Color.WHITE; // Assign the unused color to the new player
     state.currentPlayerTurn = Color.WHITE; // White always goes first
-    return Response.ok();
+    return saveToFirebase(state);
   }
 
-  selectPiece(state: InternalState, userData: UserData, _ctx: Context, request: ISelectPieceRequest): Response {
+  async selectPiece(
+    state: InternalState,
+    userData: UserData,
+    request: ISelectPieceRequest
+  ): Promise<Response> {
     if (gameStatus(state) !== GameStatus.IN_PROGRESS) {
       return Response.error("Game is not in progress");
     }
 
     const { currentPlayerTurn, unplayedPieces, board } = state;
     const currentPlayerColor = getCurrentPlayerColor(state, userData);
-    const piece = request.pieceId === undefined ? undefined : getPieceById(request.pieceId, unplayedPieces, board);
+    const piece =
+      request.pieceId === undefined
+        ? undefined
+        : getPieceById(request.pieceId, unplayedPieces, board);
 
     if (canSelectPiece(currentPlayerColor, currentPlayerTurn!, piece)) {
       state.selectedPiece = piece;
     } else if (currentPlayerColor !== currentPlayerTurn) {
       return Response.error("It is not your turn");
     } else if (piece && currentPlayerColor !== piece.color) {
-      return Response.error("You can only select new pieces that are your own color");
+      return Response.error(
+        "You can only select new pieces that are your own color"
+      );
     }
-    return Response.ok();
+    return saveToFirebase(state);
   }
 
-  movePiece(state: InternalState, userData: UserData, _ctx: Context, request: IMovePieceRequest): Response {
+  async movePiece(
+    state: InternalState,
+    userData: UserData,
+    request: IMovePieceRequest
+  ): Promise<Response> {
     if (gameStatus(state) !== GameStatus.IN_PROGRESS) {
       return Response.error("Game is not in progress");
     }
 
     const { pieceId, position: newPosition } = request;
-    const { board, currentPlayerTurn, unplayedPieces, lastMove, tournament } = state;
+    const { board, currentPlayerTurn, unplayedPieces, lastMove, tournament } =
+      state;
     const currentPlayerColor = getCurrentPlayerColor(state, userData);
     const piece = getPieceById(pieceId, unplayedPieces, board);
 
@@ -128,12 +167,19 @@ export class Impl implements Methods<InternalState> {
     } else if (currentPlayerColor !== currentPlayerTurn) {
       return Response.error("It is not your turn");
     } else if (currentPlayerColor !== piece.color) {
-      return Response.error("You can only move new pieces that are your own color");
+      return Response.error(
+        "You can only move new pieces that are your own color"
+      );
     }
     if (
-      !getValidMoves(piece, board, currentPlayerColor, currentPlayerTurn!, lastMove, tournament).find(
-        (p) => p.x === newPosition.x && p.y === newPosition.y
-      )
+      !getValidMoves(
+        piece,
+        board,
+        currentPlayerColor,
+        currentPlayerTurn!,
+        lastMove,
+        tournament
+      ).find((p) => p.x === newPosition.x && p.y === newPosition.y)
     ) {
       return Response.error("This is not a valid move");
     }
@@ -141,12 +187,14 @@ export class Impl implements Methods<InternalState> {
     const oldPosition = piece.position;
     if (oldPosition === undefined) {
       // If this is a new piece, remove it from unplayed list
-      state.unplayedPieces = state.unplayedPieces.filter((p) => p.id !== piece.id);
-    } else {
-      // If it's already on the board, remove it from current stack
-      state.board[getBoardPosKey(oldPosition)] = state.board[getBoardPosKey(oldPosition)].filter(
+      state.unplayedPieces = state.unplayedPieces.filter(
         (p) => p.id !== piece.id
       );
+    } else {
+      // If it's already on the board, remove it from current stack
+      state.board[getBoardPosKey(oldPosition)] = state.board[
+        getBoardPosKey(oldPosition)
+      ].filter((p) => p.id !== piece.id);
     }
     if (!state.board[getBoardPosKey(newPosition)]) {
       state.board[getBoardPosKey(newPosition)] = []; // If new stack doesn't exist, create empty list
@@ -165,11 +213,20 @@ export class Impl implements Methods<InternalState> {
 
     // Make sure to reset selected piece and cycle current player. If the new currentPlayer has no valid moves, cycle again. If no one has valid moves, the game is a draw.
     state.selectedPiece = undefined;
-    state.currentPlayerTurn = state.currentPlayerTurn === Color.WHITE ? Color.BLACK : Color.WHITE;
-    if (!doesPlayerHaveValidMoves(board, state.currentPlayerTurn, state.unplayedPieces, state.lastMove)) {
-      state.currentPlayerTurn = state.currentPlayerTurn === Color.WHITE ? Color.BLACK : Color.WHITE;
+    state.currentPlayerTurn =
+      state.currentPlayerTurn === Color.WHITE ? Color.BLACK : Color.WHITE;
+    if (
+      !doesPlayerHaveValidMoves(
+        board,
+        state.currentPlayerTurn,
+        state.unplayedPieces,
+        state.lastMove
+      )
+    ) {
+      state.currentPlayerTurn =
+        state.currentPlayerTurn === Color.WHITE ? Color.BLACK : Color.WHITE;
     }
-    return Response.ok();
+    return saveToFirebase(state);
   }
 
   getUserState(state: InternalState, userData: UserData): PlayerState {
@@ -188,7 +245,8 @@ export class Impl implements Methods<InternalState> {
     const { id } = userData;
     const currentPlayerColor = color[id];
     const selectedPieceForPlayer =
-      selectedPiece && canSelectPiece(currentPlayerColor, currentPlayerTurn!, selectedPiece)
+      selectedPiece &&
+      canSelectPiece(currentPlayerColor, currentPlayerTurn!, selectedPiece)
         ? selectedPiece
         : undefined;
 
@@ -203,7 +261,14 @@ export class Impl implements Methods<InternalState> {
       selectedPiece: selectedPieceForPlayer,
       lastMove,
       validMoves: selectedPieceForPlayer
-        ? getValidMoves(selectedPieceForPlayer, board, currentPlayerColor, currentPlayerTurn!, lastMove, tournament)
+        ? getValidMoves(
+            selectedPieceForPlayer,
+            board,
+            currentPlayerColor,
+            currentPlayerTurn!,
+            lastMove,
+            tournament
+          )
         : [],
       unplayedPieces,
       boardPieces: boardPiecesAsList(board),
@@ -218,13 +283,23 @@ function gameStatus(state: InternalState) {
     return GameStatus.NOT_STARTED;
   }
   // check if white or black won or if there's a draw
-  const queens = boardPiecesAsList(board).filter((p) => p.type === PieceType.QUEEN);
+  const queens = boardPiecesAsList(board).filter(
+    (p) => p.type === PieceType.QUEEN
+  );
   const whiteQueen = queens.find((q) => q.color === Color.WHITE);
   const blackQueen = queens.find((q) => q.color === Color.BLACK);
   const whiteLost = whiteQueen && isPieceSurrounded(whiteQueen, board);
   const blackLost = blackQueen && isPieceSurrounded(blackQueen, board);
 
-  if ((whiteLost && blackLost) || !doesPlayerHaveValidMoves(board, currentPlayerTurn, unplayedPieces, lastMove)) {
+  if (
+    (whiteLost && blackLost) ||
+    !doesPlayerHaveValidMoves(
+      board,
+      currentPlayerTurn,
+      unplayedPieces,
+      lastMove
+    )
+  ) {
     return GameStatus.DRAW;
   } else if (whiteLost) {
     return GameStatus.BLACK_WON;
@@ -235,13 +310,32 @@ function gameStatus(state: InternalState) {
   }
 }
 
-function getCurrentPlayerColor(state: InternalState, userData: UserData): Color {
+function getCurrentPlayerColor(
+  state: InternalState,
+  userData: UserData
+): Color {
   return state.color[userData.id];
 }
 
-function canSelectPiece(currentPlayerColor: Color, currentPlayerTurn: Color, selectedPiece?: Piece): boolean {
+function canSelectPiece(
+  currentPlayerColor: Color,
+  currentPlayerTurn: Color,
+  selectedPiece?: Piece
+): boolean {
   return (
     currentPlayerTurn === currentPlayerColor &&
-    !(selectedPiece && !selectedPiece.position && selectedPiece.color !== currentPlayerColor)
+    !(
+      selectedPiece &&
+      !selectedPiece.position &&
+      selectedPiece.color !== currentPlayerColor
+    )
   );
+}
+
+function saveToFirebase(state: InternalState): Promise<Response> {
+  return setDoc(doc(gamesRef, state.gameId), {
+    ...state,
+  })
+    .then((t) => Response.ok())
+    .catch((e) => Response.error(e));
 }
