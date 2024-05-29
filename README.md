@@ -2,6 +2,8 @@
 
 Online implementation of the tabletop strategy game [Hive](https://en.wikipedia.org/wiki/Hive_(game)).
 
+Play the game at [https://hive.netlify.app](https://hive.netlify.app)
+
 [![image.png](https://i.postimg.cc/1zX1BpmZ/image.png)](https://postimg.cc/yDMGY33f)
 
 # Getting Started with Create React App
